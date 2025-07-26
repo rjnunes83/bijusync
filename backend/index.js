@@ -1,4 +1,3 @@
-// index.js (exemplo base)
 const express = require('express');
 const dotenv = require('dotenv');
 dotenv.config();
