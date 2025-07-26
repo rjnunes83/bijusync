@@ -42,3 +42,19 @@ async function handleShopifyCallback(req, res) {
     res.status(500).send('Erro interno ao tentar obter access token');
   }
 }
+function startShopifyOAuth(req, res) {
+  const shop = req.query.shop;
+  if (!shop) {
+    return res.status(400).send('Parâmetro "shop" é obrigatório.');
+  }
+
+  const redirectUri = `${process.env.SHOPIFY_APP_URL}/auth/callback`;
+  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY}&scope=read_products,write_products&redirect_uri=${redirectUri}`;
+
+  res.redirect(installUrl);
+}
+
+module.exports = {
+  startShopifyOAuth,
+  handleShopifyCallback
+};
