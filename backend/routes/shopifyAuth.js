@@ -4,6 +4,6 @@ const router = express.Router();
 const { startShopifyOAuth, handleShopifyCallback } = require('../services/shopify/oauthService');
 
 router.get('/auth', startShopifyOAuth);
-router.get('/callback', handleShopifyCallback);
+router.get('/auth/callback', handleShopifyCallback);
 
 module.exports = router;
