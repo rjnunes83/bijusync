@@ -9,7 +9,8 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Rotas
-app.use('/shopify', require('./routes/shopifyAuth')); // se aplicável
+const shopifyAuthRoutes = require('./routes/shopifyAuth');
+app.use('/', shopifyAuthRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
