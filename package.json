@@ -2,10 +2,10 @@
   "name": "biju-sync-platform",
   "version": "1.0.0",
   "description": "Plataforma de sincronização entre lojas Shopify",
-  "main": "index.js",
+  "main": "backend/index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node backend/index.js",
+    "dev": "nodemon backend/index.js"
   },
   "dependencies": {
     "@shopify/shopify-api": "^11.14.1",
