@@ -22,3 +22,5 @@ app.use('/', shopifyAuthRoutes);
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
+
+app.use('/test', require('./routes/testRoutes'));
