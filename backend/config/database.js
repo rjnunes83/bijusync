@@ -1,18 +1,16 @@
+// backend/config/database.js
 const { Sequelize } = require('sequelize');
-const dotenv = require('dotenv');
-const path = require('path');
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+require('dotenv').config();
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
-  protocol: 'postgres',
   dialectOptions: {
     ssl: {
       require: true,
-      rejectUnauthorized: false // ⚠️ necessário para evitar erro de certificado
-    }
+      rejectUnauthorized: false,
+    },
   },
-  logging: false,
+  logging: false, // ou true se quiser ver os logs
 });
 
-module.exports = { sequelize };
+module.exports = sequelize;
