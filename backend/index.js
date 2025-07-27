@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
-dotenv.config();
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Conexão com PostgreSQL
 const { Pool } = require('pg');
