@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const shopService = require('../services/shopService');
+const { saveOrUpdateShop, getShopByDomain } = require('../services/shopService');
 
 // 👉 Rota para testar o salvamento da loja no banco
 router.get('/test-save-shop', async (req, res) => {
@@ -11,7 +11,7 @@ router.get('/test-save-shop', async (req, res) => {
       scope: 'read_products,write_products'
     };
 
-    await shopService.saveOrUpdateShop(shopData);
+    await saveOrUpdateShop(shopData);
     res.send('✅ Loja salva ou atualizada com sucesso!');
   } catch (error) {
     console.error('Erro ao salvar loja:', error);
@@ -23,7 +23,7 @@ router.get('/test-save-shop', async (req, res) => {
 router.get('/test-get-shop', async (req, res) => {
   try {
     const shopDomain = 'testebijuecia.myshopify.com';
-    const shop = await shopService.getShopByDomain(shopDomain);
+    const shop = await getShopByDomain(shopDomain);
 
     if (shop) {
       res.json({

@@ -40,6 +40,6 @@ async function getShopToken(shopDomain) {
 }
 
 module.exports = {
-  saveShop,
+  saveOrUpdateShop: saveShop,
   getShopToken
 };
