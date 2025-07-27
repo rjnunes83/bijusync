@@ -5,7 +5,7 @@ const axios = require('axios');
 const Shop = require('../models/Shop'); // model que representa a tabela shops
 
 // Endpoint para listar produtos da loja conectada
-router.get('/products', async (req, res) => {
+router.get('/', async (req, res) => {
   const { shop } = req.query;
 
   if (!shop) {
