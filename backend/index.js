@@ -4,7 +4,7 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Importação do Sequelize e da instância sequelize configurada
-const { sequelize } = require('./config/database');
+const { sequelize } = require('./config/db');
 
 // Conexão com PostgreSQL
 const { Pool } = require('pg');

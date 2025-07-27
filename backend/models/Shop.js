@@ -1,6 +1,6 @@
 // backend/models/Shop.js
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database'); // ajuste se o caminho do seu arquivo de conexão for diferente
+const sequelize = require('../config/db'); // ajuste se o caminho do seu arquivo de conexão for diferente
 
 const Shop = sequelize.define('Shop', {
   id: {
