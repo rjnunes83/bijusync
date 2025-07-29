@@ -67,5 +67,4 @@ export {
   saveOrUpdateShop,
   getShopToken,
   getShopByDomain,
-  getAllShops
 };
