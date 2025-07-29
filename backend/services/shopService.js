@@ -63,4 +63,16 @@ export async function getAllShops() {
   }
 }
 
-// Exports já realizados individualmente acima; nenhuma exportação adicional necessária aqui.
+
+// Buscar loja pelo domínio (compatível com Sequelize ou futuras mudanças de ORM)
+export async function findShopByDomain(domain) {
+  if (!domain) return null;
+
+  try {
+    const result = await db.query('SELECT * FROM shops WHERE shopify_domain = $1', [domain]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erro ao buscar loja por domínio:', error.message);
+    return null;
+  }
+}

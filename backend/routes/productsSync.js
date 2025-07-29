@@ -14,7 +14,7 @@ router.post('/sync', async (req, res) => {
   }
 
   try {
-    const shop = await Shop.findOne({ where: { shopify_domain: shopDomain } });
+    const shop = await shopService.findShopByDomain(shopDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
@@ -72,7 +72,7 @@ router.patch('/update', async (req, res) => {
   if (!shopDomain) return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
 
   try {
-    const shop = await Shop.findOne({ where: { shopify_domain: shopDomain } });
+    const shop = await shopService.findShopByDomain(shopDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
@@ -165,7 +165,7 @@ router.delete('/delete', async (req, res) => {
   if (!shopDomain) return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
 
   try {
-    const shop = await Shop.findOne({ where: { shopify_domain: shopDomain } });
+    const shop = await shopService.findShopByDomain(shopDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
@@ -218,7 +218,7 @@ router.patch('/sync-status', async (req, res) => {
   if (!shopDomain) return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
 
   try {
-    const shop = await Shop.findOne({ where: { shopify_domain: shopDomain } });
+    const shop = await shopService.findShopByDomain(shopDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
