@@ -52,8 +52,28 @@ async function getAndTransformAllProducts() {
   return products.map(transformProduct);
 }
 
+async function createProductInStore(productData, accessToken, shop) {
+  try {
+    const response = await axios.post(
+      `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json`,
+      { product: productData },
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data.product;
+  } catch (error) {
+    console.error('❌ Erro ao criar produto na loja:', error?.response?.data || error.message);
+    throw error;
+  }
+}
+
 export {
   getAllProducts,
   transformProduct,
   getAndTransformAllProducts,
+  createProductInStore,
 };
