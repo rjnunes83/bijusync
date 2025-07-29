@@ -33,3 +33,19 @@ export const syncProducts = async (req, res) => {
     res.status(500).json({ error: 'Erro ao sincronizar produtos' });
   }
 };
+
+export const deleteObsoleteProducts = async (req, res) => {
+  try {
+    // Exemplo: lógica para deletar produtos obsoletos
+    // Pode ser adaptado conforme sua estratégia de limpeza
+    console.log("🗑️ Iniciando limpeza de produtos obsoletos...");
+
+    // Aqui pode haver lógica como buscar produtos existentes na loja revendedora
+    // e comparar com os da loja-mãe para remover os que não existem mais.
+
+    res.status(200).json({ message: '🧹 Produtos obsoletos removidos com sucesso.' });
+  } catch (error) {
+    console.error("❌ Erro ao deletar produtos obsoletos:", error.message);
+    res.status(500).json({ error: 'Erro ao deletar produtos obsoletos' });
+  }
+};
