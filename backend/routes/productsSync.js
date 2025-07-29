@@ -2,66 +2,58 @@ import express from 'express';
 import * as shopService from '../services/shopService.js';
 import { getAndTransformAllProducts as getProductsFromMainStore, createProductInStore, updateProductInStore, updateVariantInStore } from '../services/shopify/shopifyService.js';
 import { updateProductStatusInStore } from '../services/shopify/shopifyService.js';
+import { sequelize } from "../db.js";
+import Sequelize from "sequelize";
 
 const router = express.Router();
 
 // Endpoint para sincronizar produtos para uma revendedora específica
-router.post('/sync', async (req, res) => {
+router.post("/sync", async (req, res) => {
   const { shopifyDomain } = req.body;
 
   if (!shopifyDomain) {
-    return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
+    return res.status(400).json({ error: "Domínio da loja não fornecido." });
   }
 
   try {
-    const shop = await shopService.findShopByDomain(shopifyDomain);
-    if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
+    console.log("🔍 Buscando loja com domínio:", shopifyDomain);
+    const lojas = await sequelize.query(
+      "SELECT * FROM shops WHERE shopify_domain = $1",
+      {
+        bind: [shopifyDomain],
+        type: Sequelize.QueryTypes.SELECT,
+      }
+    );
 
-    const revendedoraToken = shop.accessToken;
-    const products = await getProductsFromMainStore(shop.accessToken);
+    if (!lojas.length) {
+      return res.status(404).json({ error: "Loja revendedora não encontrada." });
+    }
 
-    let totalCriado = 0, totalIgnorado = 0, totalFalhou = 0;
+    const loja = lojas[0];
+    console.log("✅ Loja encontrada:", loja);
 
-    for (const product of products) {
+    // Lógica de sincronização reativada
+    const produtosLojaMae = await getProductsFromMainStore(loja.accessToken);
+    const revendedoraToken = loja.accessToken;
+    const markupPercentage = loja.markupPercentage || 0;
+
+    let totalCriado = 0;
+    for (const produto of produtosLojaMae) {
       try {
-        const skuPrincipal = product?.variants?.[0]?.sku;
-        if (!skuPrincipal) {
-          console.warn(`Produto "${product.title}" sem SKU definido.`);
-          totalIgnorado++;
-          continue;
-        }
-
-        const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?fields=id,variants`, {
-          method: 'GET',
-          headers: {
-            'X-Shopify-Access-Token': revendedoraToken,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
-
-        const existe = data.products?.some(p =>
-          p.variants?.some(v => v.sku?.trim().toLowerCase() === skuPrincipal.trim().toLowerCase())
-        );
-
-        if (existe) {
-          console.log(`Produto "${product.title}" já existe.`);
-          totalIgnorado++;
-          continue;
-        }
-
-        await createProductInStore(shopifyDomain, revendedoraToken, product);
+        await createProductInStore(shopifyDomain, revendedoraToken, produto, markupPercentage);
         totalCriado++;
       } catch (error) {
-        console.error(`Erro em "${product.title}": ${error.message}`);
-        totalFalhou++;
+        console.error(`Erro ao criar produto "${produto.title}":`, error.message);
       }
     }
 
-    res.status(200).json({ message: 'Sincronização concluída.', criados: totalCriado, ignorados: totalIgnorado, falhas: totalFalhou });
+    console.log(`✅ Produtos sincronizados: ${totalCriado}`);
+
+    res.status(200).json({ success: true, message: "Sincronização iniciada com sucesso." });
+
   } catch (error) {
-    console.error('Erro geral na sincronização:', error);
-    res.status(500).json({ error: 'Erro interno.' });
+    console.error("Erro ao buscar loja por domínio:", error);
+    res.status(500).json({ error: "Erro interno ao buscar loja." });
   }
 });
 
