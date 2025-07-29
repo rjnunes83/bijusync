@@ -2,7 +2,7 @@ import express from 'express';
 import * as shopService from '../services/shopService.js';
 import { getAndTransformAllProducts as getProductsFromMainStore, createProductInStore, updateProductInStore, updateVariantInStore } from '../services/shopify/shopifyService.js';
 import { updateProductStatusInStore } from '../services/shopify/shopifyService.js';
-import { sequelize } from "../db.js";
+import sequelize from "../config/db.js";
 import Sequelize from "sequelize";
 
 const router = express.Router();
