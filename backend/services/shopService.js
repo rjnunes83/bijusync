@@ -63,8 +63,4 @@ export async function getAllShops() {
   }
 }
 
-export {
-  saveOrUpdateShop,
-  getShopToken,
-  getShopByDomain,
-};
+// Exports já realizados individualmente acima; nenhuma exportação adicional necessária aqui.
