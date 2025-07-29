@@ -24,6 +24,21 @@ async function getAllProducts() {
   }
 }
 
+async function getAllProductsFromShop(token, shop) {
+  try {
+    const response = await axios.get(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json`, {
+      headers: {
+        'X-Shopify-Access-Token': token,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data.products || [];
+  } catch (error) {
+    console.error(`❌ Erro ao buscar produtos da loja ${shop}:`, error?.response?.data || error.message);
+    return [];
+  }
+}
+
 function transformProduct(product) {
   if (!product) return null;
 
@@ -76,4 +91,5 @@ export {
   transformProduct,
   getAndTransformAllProducts,
   createProductInStore,
+  getAllProductsFromShop,
 };
