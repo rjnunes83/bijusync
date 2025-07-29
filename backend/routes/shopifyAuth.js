@@ -47,6 +47,17 @@ router.get('/auth/callback', async (req, res) => {
     console.log('🔐 Token:', accessToken);
     console.log('🔍 Scope:', scope);
 
+    // Importa serviço de persistência
+    const { saveOrUpdateShop } = require('../services/shopService');
+
+    // Salva ou atualiza no banco
+    await saveOrUpdateShop({
+      shopifyDomain: shop,
+      accessToken: accessToken,
+      scope: scope
+    });
+
+    // Redireciona ou responde com sucesso
     res.send(`✅ Autenticação concluída com sucesso!<br><br>🔐 Access Token: <code>${accessToken}</code>`);
   } catch (error) {
     console.error('❌ Erro ao trocar o code por token:', error?.response?.data || error.message);

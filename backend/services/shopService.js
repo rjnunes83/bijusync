@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 // Salvar nova loja ou atualizar access_token se já existir
-async function saveShop({ shopDomain, accessToken, scope }) {
+async function saveOrUpdateShop({ shopDomain, accessToken, scope }) {
   if (!shopDomain || !accessToken) {
     throw new Error('Parâmetros obrigatórios ausentes para salvar loja.');
   }
@@ -11,12 +11,12 @@ async function saveShop({ shopDomain, accessToken, scope }) {
 
     if (existingShop.rows.length > 0) {
       await db.query(
-        'UPDATE shops SET access_token = $1, scope = $2, updated_at = NOW() WHERE shop_domain = $3',
+        'UPDATE shops SET access_token = $1, scope = $2, updated_at = NOW(), installed = true WHERE shop_domain = $3',
         [accessToken, scope, shopDomain]
       );
     } else {
       await db.query(
-        'INSERT INTO shops (shop_domain, access_token, scope, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW())',
+        'INSERT INTO shops (shop_domain, access_token, scope, installed, created_at, updated_at) VALUES ($1, $2, $3, true, NOW(), NOW())',
         [shopDomain, accessToken, scope]
       );
     }
@@ -39,7 +39,21 @@ async function getShopToken(shopDomain) {
   }
 }
 
+// Buscar todos os dados da loja pelo domínio
+async function getShopByDomain(shopDomain) {
+  if (!shopDomain) return null;
+
+  try {
+    const result = await db.query('SELECT * FROM shops WHERE shop_domain = $1', [shopDomain]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erro ao buscar loja:', error.message);
+    return null;
+  }
+}
+
 module.exports = {
-  saveOrUpdateShop: saveShop,
-  getShopToken
+  saveOrUpdateShop,
+  getShopToken,
+  getShopByDomain
 };

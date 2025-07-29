@@ -1,16 +1,17 @@
-const axios = require('axios');
+import axios from 'axios';
+import dotenv from 'dotenv';
+dotenv.config();
 
-// Tokens da loja principal
-const SHOPIFY_STORE = 'revenda-biju.myshopify.com';
-const ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
+const SHOPIFY_STORE = process.env.SHOPIFY_MAIN_STORE;
+const ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
 
 async function fetchProductsFromShopify() {
   try {
     const response = await axios.get(
-      `https://${SHOPIFY_STORE}/admin/api/2024-04/products.json`,
+      `https://${SHOPIFY_STORE}/admin/api/${process.env.SHOPIFY_API_VERSION}/products.json?limit=5`,
       {
         headers: {
-          'X-Shopify-Access-Token': ADMIN_API_TOKEN,
+          'X-Shopify-Access-Token': ACCESS_TOKEN,
           'Content-Type': 'application/json',
         },
       }
@@ -23,4 +24,4 @@ async function fetchProductsFromShopify() {
   }
 }
 
-module.exports = fetchProductsFromShopify;
+export default fetchProductsFromShopify;
