@@ -51,3 +51,21 @@ export async function getShopByDomain(shopDomain) {
     return null;
   }
 }
+
+// Buscar todos os shops instalados
+export async function getAllShops() {
+  try {
+    const result = await db.query('SELECT shop_domain, access_token FROM shops WHERE installed = true');
+    return result.rows;
+  } catch (error) {
+    console.error('Erro ao buscar todas as lojas:', error.message);
+    return [];
+  }
+}
+
+export {
+  saveOrUpdateShop,
+  getShopToken,
+  getShopByDomain,
+  getAllShops
+};
