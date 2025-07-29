@@ -153,6 +153,24 @@ app.get('/health', (req, res) => {
   res.status(200).send('🟢 Servidor ativo e respondendo.');
 });
 
+// Rota para deletar produtos obsoletos da loja revendedora
+app.delete('/delete', async (req, res) => {
+  const { shopDomain } = req.body;
+
+  if (!shopDomain) {
+    return res.status(400).json({ error: 'shopDomain é obrigatório no corpo da requisição.' });
+  }
+
+  try {
+    const { deleteObsoleteProducts } = await import('./services/shopify/shopifyService.js');
+    const deletedCount = await deleteObsoleteProducts(shopDomain);
+    res.status(200).json({ message: `🧹 ${deletedCount} produtos obsoletos foram removidos com sucesso.` });
+  } catch (error) {
+    console.error('❌ Erro ao deletar produtos obsoletos:', error);
+    res.status(500).json({ error: 'Erro ao deletar produtos obsoletos.' });
+  }
+});
+
 // Inicia o servidor e sincroniza o Sequelize
 sequelize.sync({ alter: true })
   .then(() => {
