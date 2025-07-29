@@ -73,6 +73,79 @@ app.use('/', testRoutes);
 app.use('/api', productRoutes);
 app.use('/products', productsSyncRoutes);
 
+// Rota para início do OAuth (instalação da loja Shopify)
+app.get('/auth', async (req, res) => {
+  const shop = req.query.shop;
+
+  if (!shop) {
+    return res.status(400).send('Faltando parâmetro "shop" na URL.');
+  }
+
+  const apiKey = process.env.SHOPIFY_API_KEY || 'c4631beee345d2062a8a869ab2830a17';
+  const scopes = 'read_products,write_products';
+  const redirectUri = 'https://bijusync.onrender.com/auth/callback';
+
+  const installUrl = `https://${shop}/admin/oauth/authorize` +
+    `?client_id=${apiKey}` +
+    `&scope=${scopes}` +
+    `&redirect_uri=${redirectUri}`;
+
+  console.log(`🔗 Redirecionando para instalação: ${installUrl}`);
+  res.redirect(installUrl);
+});
+
+// Rota de callback da autenticação OAuth
+app.get('/auth/callback', async (req, res) => {
+  const { shop, code } = req.query;
+
+  if (!shop || !code) {
+    return res.status(400).send('Parâmetros "shop" e "code" são obrigatórios.');
+  }
+
+  const apiKey = process.env.SHOPIFY_API_KEY || 'c4631beee345d2062a8a869ab2830a17';
+  const apiSecret = process.env.SHOPIFY_API_SECRET || 'c5485358887619479f8b82fe85036946';
+
+  const fetch = (await import('node-fetch')).default;
+
+  const accessTokenRequestUrl = `https://${shop}/admin/oauth/access_token`;
+  const accessTokenPayload = {
+    client_id: apiKey,
+    client_secret: apiSecret,
+    code,
+  };
+
+  try {
+    const response = await fetch(accessTokenRequestUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(accessTokenPayload),
+    });
+
+    const tokenData = await response.json();
+
+    if (!tokenData.access_token) {
+      console.error('❌ Falha ao obter access_token da Shopify:', tokenData);
+      return res.status(500).send('Erro ao obter token de acesso.');
+    }
+
+    // Salva/atualiza na tabela shops
+    await pool.query(
+      `INSERT INTO shops (shopify_domain, access_token, created_at, updated_at)
+       VALUES ($1, $2, NOW(), NOW())
+       ON CONFLICT (shopify_domain) DO UPDATE
+       SET access_token = EXCLUDED.access_token,
+           updated_at = NOW()`,
+      [shop, tokenData.access_token]
+    );
+
+    console.log(`✅ Loja autenticada e salva no banco: ${shop}`);
+    res.send('✅ Aplicativo instalado com sucesso!');
+  } catch (err) {
+    console.error('❌ Erro ao obter token de acesso:', err);
+    res.status(500).send('Erro ao processar autenticação.');
+  }
+});
+
 // Rota de verificação de saúde do servidor
 app.get('/health', (req, res) => {
   res.status(200).send('🟢 Servidor ativo e respondendo.');
