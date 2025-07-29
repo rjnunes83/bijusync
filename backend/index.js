@@ -8,6 +8,7 @@ import shopifyAuthRoutes from './routes/shopifyAuth.js';
 import testRoutes from './routes/testRoutes.js';
 import productRoutes from './routes/products.js';
 import productsSyncRoutes from './routes/productsSync.js';
+import syncRoutes from './routes/syncRoutes.js';
 
 // Carrega variáveis de ambiente do arquivo .env
 dotenv.config();
@@ -72,6 +73,7 @@ app.use('/auth', shopifyAuthRoutes);
 app.use('/', testRoutes);
 app.use('/api', productRoutes);
 app.use('/products', productsSyncRoutes);
+app.use('/', syncRoutes); // rota /sync
 
 // Rota para início do OAuth (instalação da loja Shopify)
 app.get('/auth', async (req, res) => {
