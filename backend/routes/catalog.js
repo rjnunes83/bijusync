@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { getAllProducts } = require('../services/shopify/shopifyService');
+import { getAllProducts } from '../services/shopify/shopifyService.js';
 
 router.get('/catalog', async (req, res) => {
   try {
@@ -11,4 +11,4 @@ router.get('/catalog', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

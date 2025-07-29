@@ -1,7 +1,7 @@
-// backend/routes/auth.js
+import express from 'express';
+import axios from 'axios';
+import { saveOrUpdateShop } from '../services/shopService.js';
 
-const express = require('express');
-const axios = require('axios');
 const router = express.Router();
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
@@ -37,7 +37,6 @@ router.get('/callback', async (req, res) => {
 
     // Aqui você pode salvar no banco: shop e accessToken
     // Exemplo (você pode adaptar com seu model):
-    const { saveOrUpdateShop } = require('../services/shopService');
     await saveOrUpdateShop(shop, accessToken);
 
     return res.send('App instalado com sucesso!'); // ou redirecionar para dashboard
@@ -47,4 +46,4 @@ router.get('/callback', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

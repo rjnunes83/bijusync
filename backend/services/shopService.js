@@ -1,7 +1,7 @@
-const db = require('../config/db');
+import db from '../config/db.js';
 
 // Salvar nova loja ou atualizar access_token se já existir
-async function saveOrUpdateShop({ shopDomain, accessToken, scope }) {
+export async function saveOrUpdateShop({ shopDomain, accessToken, scope }) {
   if (!shopDomain || !accessToken) {
     throw new Error('Parâmetros obrigatórios ausentes para salvar loja.');
   }
@@ -27,7 +27,7 @@ async function saveOrUpdateShop({ shopDomain, accessToken, scope }) {
 }
 
 // Buscar token da loja pelo domínio
-async function getShopToken(shopDomain) {
+export async function getShopToken(shopDomain) {
   if (!shopDomain) return null;
 
   try {
@@ -40,7 +40,7 @@ async function getShopToken(shopDomain) {
 }
 
 // Buscar todos os dados da loja pelo domínio
-async function getShopByDomain(shopDomain) {
+export async function getShopByDomain(shopDomain) {
   if (!shopDomain) return null;
 
   try {
@@ -51,9 +51,3 @@ async function getShopByDomain(shopDomain) {
     return null;
   }
 }
-
-module.exports = {
-  saveOrUpdateShop,
-  getShopToken,
-  getShopByDomain
-};

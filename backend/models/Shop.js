@@ -1,6 +1,6 @@
 // backend/models/Shop.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db'); // ajuste se o caminho do seu arquivo de conexão for diferente
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/db.js'; // ajuste se o caminho do seu arquivo de conexão for diferente
 
 const Shop = sequelize.define('Shop', {
   id: {
@@ -24,4 +24,4 @@ const Shop = sequelize.define('Shop', {
   updatedAt: 'updated_at'
 });
 
-module.exports = Shop;
+export default Shop;

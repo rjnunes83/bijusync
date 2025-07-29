@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import shopService from '../services/shopService.js';
+import { getProductsFromMainStore, createProductInStore } from '../services/shopifyService.js';
+
 const router = express.Router();
-const shopService = require('../services/shopService');
-const { getProductsFromMainStore, createProductInStore } = require('../services/shopifyService');
 
 // Endpoint para sincronizar produtos para uma revendedora específica
 router.post('/sync', async (req, res) => {
@@ -47,4 +48,4 @@ router.post('/sync', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

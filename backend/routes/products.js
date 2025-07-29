@@ -1,6 +1,6 @@
 // backend/routes/products.js
-const express = require('express');
-const fetchProductsFromShopify = require('../services/shopify/fetchProducts');
+import express from 'express';
+import fetchProductsFromShopify from '../services/shopify/fetchProducts.js';
 
 const router = express.Router();
 
@@ -14,4 +14,4 @@ router.get('/products', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

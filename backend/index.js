@@ -1,12 +1,16 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const path = require('path');
-const cors = require('cors'); // 🔁 CORS opcional para testes frontend
-const { Pool } = require('pg');
-const sequelize = require('./config/db');
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { Pool } from 'pg';
+import sequelize from './config/db.js';
+
+import shopifyAuthRoutes from './routes/shopifyAuth.js';
+import testRoutes from './routes/testRoutes.js';
+import productRoutes from './routes/products.js';
+import productsSyncRoutes from './routes/productsSync.js';
 
 // Carrega variáveis de ambiente do arquivo .env
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 
 // Conexão com PostgreSQL usando Pool (para queries brutas se necessário)
 const pool = new Pool({
@@ -18,15 +22,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors()); // 🔁 necessário apenas se for usar frontend separado localmente
+app.use(cors());
 app.use(express.json());
 
 // Rotas
-const shopifyAuthRoutes = require('./routes/shopifyAuth');
-const testRoutes = require('./routes/testRoutes');
-const productRoutes = require('./routes/products');
-const productsSyncRoutes = require('./routes/productsSync');
-
 app.use('/auth', shopifyAuthRoutes);
 app.use('/test', testRoutes);
 app.use('/api', productRoutes);

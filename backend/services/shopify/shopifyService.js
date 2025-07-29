@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 const SHOPIFY_STORE = process.env.SHOPIFY_MAIN_STORE;
 const SHOPIFY_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
@@ -52,7 +52,7 @@ async function getAndTransformAllProducts() {
   return products.map(transformProduct);
 }
 
-module.exports = {
+export {
   getAllProducts,
   transformProduct,
   getAndTransformAllProducts,

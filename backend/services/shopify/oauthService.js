@@ -1,10 +1,12 @@
-const fetch = require('node-fetch'); // instale se ainda não tiver
+import fetch from 'node-fetch';
+import crypto from 'crypto';
+import querystring from 'querystring';
 
 async function handleShopifyCallback(req, res) {
   const { code, hmac, shop } = req.query;
 
   const generatedHash = crypto
-    .createHmac('sha256', SHOPIFY_API_SECRET)
+    .createHmac('sha256', process.env.SHOPIFY_API_SECRET)
     .update(querystring.stringify({ code, shop }))
     .digest('hex');
 
@@ -19,8 +21,8 @@ async function handleShopifyCallback(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: SHOPIFY_API_KEY,
-        client_secret: SHOPIFY_API_SECRET,
+        client_id: process.env.SHOPIFY_API_KEY,
+        client_secret: process.env.SHOPIFY_API_SECRET,
         code,
       }),
     });
@@ -54,7 +56,4 @@ function startShopifyOAuth(req, res) {
   res.redirect(installUrl);
 }
 
-module.exports = {
-  startShopifyOAuth,
-  handleShopifyCallback
-};
+export { startShopifyOAuth, handleShopifyCallback };
