@@ -15,6 +15,9 @@ dotenv.config();
 // Conexão com PostgreSQL usando Pool (para queries brutas se necessário)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 // Express App
