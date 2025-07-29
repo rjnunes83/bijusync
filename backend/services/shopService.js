@@ -7,16 +7,16 @@ export async function saveOrUpdateShop({ shopDomain, accessToken, scope }) {
   }
 
   try {
-    const existingShop = await db.query('SELECT * FROM shops WHERE shop_domain = $1', [shopDomain]);
+    const existingShop = await db.query('SELECT * FROM shops WHERE shopify_domain = $1', [shopDomain]);
 
     if (existingShop.rows.length > 0) {
       await db.query(
-        'UPDATE shops SET access_token = $1, scope = $2, updated_at = NOW(), installed = true WHERE shop_domain = $3',
+        'UPDATE shops SET access_token = $1, scope = $2, updated_at = NOW(), installed = true WHERE shopify_domain = $3',
         [accessToken, scope, shopDomain]
       );
     } else {
       await db.query(
-        'INSERT INTO shops (shop_domain, access_token, scope, installed, created_at, updated_at) VALUES ($1, $2, $3, true, NOW(), NOW())',
+        'INSERT INTO shops (shopify_domain, access_token, scope, installed, created_at, updated_at) VALUES ($1, $2, $3, true, NOW(), NOW())',
         [shopDomain, accessToken, scope]
       );
     }
@@ -31,7 +31,7 @@ export async function getShopToken(shopDomain) {
   if (!shopDomain) return null;
 
   try {
-    const result = await db.query('SELECT access_token FROM shops WHERE shop_domain = $1', [shopDomain]);
+    const result = await db.query('SELECT access_token FROM shops WHERE shopify_domain = $1', [shopDomain]);
     return result.rows[0]?.access_token || null;
   } catch (error) {
     console.error('Erro ao buscar token da loja:', error.message);
@@ -44,7 +44,7 @@ export async function getShopByDomain(shopDomain) {
   if (!shopDomain) return null;
 
   try {
-    const result = await db.query('SELECT * FROM shops WHERE shop_domain = $1', [shopDomain]);
+    const result = await db.query('SELECT * FROM shops WHERE shopify_domain = $1', [shopDomain]);
     return result.rows[0] || null;
   } catch (error) {
     console.error('Erro ao buscar loja:', error.message);
@@ -55,7 +55,7 @@ export async function getShopByDomain(shopDomain) {
 // Buscar todos os shops instalados
 export async function getAllShops() {
   try {
-    const result = await db.query('SELECT shop_domain, access_token FROM shops WHERE installed = true');
+    const result = await db.query('SELECT shopify_domain, access_token FROM shops WHERE installed = true');
     return result.rows;
   } catch (error) {
     console.error('Erro ao buscar todas as lojas:', error.message);
@@ -69,7 +69,7 @@ export async function findShopByDomain(domain) {
   if (!domain) return null;
 
   try {
-    const result = await db.query('SELECT * FROM shops WHERE shop_domain = $1', [domain]);
+    const result = await db.query('SELECT * FROM shops WHERE shopify_domain = $1', [domain]);
     return result.rows[0] || null;
   } catch (error) {
     console.error('Erro ao buscar loja por domínio:', error.message);
