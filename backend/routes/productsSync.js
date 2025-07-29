@@ -7,14 +7,14 @@ const router = express.Router();
 
 // Endpoint para sincronizar produtos para uma revendedora específica
 router.post('/sync', async (req, res) => {
-  const { shopDomain } = req.body;
+  const { shopifyDomain } = req.body;
 
-  if (!shopDomain) {
-    return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
+  if (!shopifyDomain) {
+    return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
   }
 
   try {
-    const shop = await shopService.findShopByDomain(shopDomain);
+    const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
@@ -31,7 +31,7 @@ router.post('/sync', async (req, res) => {
           continue;
         }
 
-        const response = await fetch(`https://${shopDomain}/admin/api/2024-04/products.json?fields=id,variants`, {
+        const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?fields=id,variants`, {
           method: 'GET',
           headers: {
             'X-Shopify-Access-Token': revendedoraToken,
@@ -50,7 +50,7 @@ router.post('/sync', async (req, res) => {
           continue;
         }
 
-        await createProductInStore(shopDomain, revendedoraToken, product);
+        await createProductInStore(shopifyDomain, revendedoraToken, product);
         totalCriado++;
       } catch (error) {
         console.error(`Erro em "${product.title}": ${error.message}`);
@@ -67,12 +67,12 @@ router.post('/sync', async (req, res) => {
 
 // Endpoint para atualizar produtos existentes
 router.patch('/update', async (req, res) => {
-  const { shopDomain } = req.body;
+  const { shopifyDomain } = req.body;
 
-  if (!shopDomain) return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
+  if (!shopifyDomain) return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
 
   try {
-    const shop = await shopService.findShopByDomain(shopDomain);
+    const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
@@ -88,7 +88,7 @@ router.patch('/update', async (req, res) => {
           continue;
         }
 
-        const response = await fetch(`https://${shopDomain}/admin/api/2024-04/products.json?fields=id,title,variants`, {
+        const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?fields=id,title,variants`, {
           method: 'GET',
           headers: {
             'X-Shopify-Access-Token': revendedoraToken,
@@ -108,9 +108,9 @@ router.patch('/update', async (req, res) => {
 
         const markupPercentage = shop.markupPercentage || 0;
 
-        await updateProductInStore(shopDomain, revendedoraToken, produtoExistente.id, produtoMae);
+        await updateProductInStore(shopifyDomain, revendedoraToken, produtoExistente.id, produtoMae);
         for (const variant of produtoMae.variants) {
-          await updateVariantInStore(shopDomain, revendedoraToken, produtoExistente.id, variant, markupPercentage);
+          await updateVariantInStore(shopifyDomain, revendedoraToken, produtoExistente.id, variant, markupPercentage);
         }
 
         /*
@@ -134,7 +134,7 @@ router.patch('/update', async (req, res) => {
           }
         };
 
-        await fetch(`https://${shopDomain}/admin/api/2024-04/products/${produtoExistente.id}.json`, {
+        await fetch(`https://${shopifyDomain}/admin/api/2024-04/products/${produtoExistente.id}.json`, {
           method: 'PUT',
           headers: {
             'X-Shopify-Access-Token': revendedoraToken,
@@ -160,19 +160,19 @@ router.patch('/update', async (req, res) => {
 
 // Endpoint para deletar produtos ausentes na loja-mãe
 router.delete('/delete', async (req, res) => {
-  const { shopDomain } = req.body;
+  const { shopifyDomain } = req.body;
 
-  if (!shopDomain) return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
+  if (!shopifyDomain) return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
 
   try {
-    const shop = await shopService.findShopByDomain(shopDomain);
+    const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
     const produtosMae = await getProductsFromMainStore(shop.accessToken);
     const skusMae = produtosMae.flatMap(p => p.variants?.map(v => v.sku)).filter(Boolean);
 
-    const response = await fetch(`https://${shopDomain}/admin/api/2024-04/products.json?limit=250`, {
+    const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?limit=250`, {
       method: 'GET',
       headers: {
         'X-Shopify-Access-Token': revendedoraToken,
@@ -190,7 +190,7 @@ router.delete('/delete', async (req, res) => {
 
     for (const produto of produtosParaDeletar) {
       try {
-        await fetch(`https://${shopDomain}/admin/api/2024-04/products/${produto.id}.json`, {
+        await fetch(`https://${shopifyDomain}/admin/api/2024-04/products/${produto.id}.json`, {
           method: 'DELETE',
           headers: {
             'X-Shopify-Access-Token': revendedoraToken,
@@ -213,18 +213,18 @@ router.delete('/delete', async (req, res) => {
 
 // Endpoint para sincronizar status dos produtos com base na loja-mãe
 router.patch('/sync-status', async (req, res) => {
-  const { shopDomain } = req.body;
+  const { shopifyDomain } = req.body;
 
-  if (!shopDomain) return res.status(400).json({ error: 'Parâmetro "shopDomain" é obrigatório.' });
+  if (!shopifyDomain) return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
 
   try {
-    const shop = await shopService.findShopByDomain(shopDomain);
+    const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
     const produtosMae = await getProductsFromMainStore(shop.accessToken);
 
-    const response = await fetch(`https://${shopDomain}/admin/api/2024-04/products.json?limit=250&fields=id,title,variants,status`, {
+    const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?limit=250&fields=id,title,variants,status`, {
       method: 'GET',
       headers: {
         'X-Shopify-Access-Token': revendedoraToken,
@@ -248,7 +248,7 @@ router.patch('/sync-status', async (req, res) => {
       if (!produtoCorrespondente) continue;
 
       if (produtoCorrespondente.status !== statusMae) {
-        await updateProductStatusInStore(shopDomain, revendedoraToken, produtoCorrespondente.id, statusMae);
+        await updateProductStatusInStore(shopifyDomain, revendedoraToken, produtoCorrespondente.id, statusMae);
         atualizados++;
       }
     }
