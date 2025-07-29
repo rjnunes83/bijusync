@@ -34,12 +34,7 @@ app.use((req, res, next) => {
 // Rota para buscar produtos da Shopify
 app.get('/products', async (req, res) => {
   try {
-    const { Pool } = await import('pg');
     const fetch = (await import('node-fetch')).default;
-
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
 
     const result = await pool.query('SELECT shopify_domain, access_token FROM shops ORDER BY created_at DESC LIMIT 1');
 
@@ -49,22 +44,22 @@ app.get('/products', async (req, res) => {
 
     const { shopify_domain, access_token } = result.rows[0];
 
-    const response = await fetch(`https://${shopify_domain}/admin/api/2024-04/products.json`, {
+    const shopifyResponse = await fetch(`https://${shopify_domain}/admin/api/2024-04/products.json`, {
       headers: {
         'X-Shopify-Access-Token': access_token,
         'Content-Type': 'application/json',
       },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ error: `Erro da Shopify: ${errorText}` });
+    if (!shopifyResponse.ok) {
+      const errorText = await shopifyResponse.text();
+      return res.status(shopifyResponse.status).json({ error: `Erro da Shopify: ${errorText}` });
     }
 
-    const data = await response.json();
+    const data = await shopifyResponse.json();
     return res.json(data);
   } catch (err) {
-    console.error('Erro ao buscar produtos:', err);
+    console.error('❌ Erro ao buscar produtos:', err);
     res.status(500).json({ error: 'Erro interno ao buscar produtos' });
   }
 });
