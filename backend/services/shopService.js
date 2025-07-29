@@ -69,7 +69,7 @@ export async function findShopByDomain(domain) {
   if (!domain) return null;
 
   try {
-    const result = await db.query('SELECT * FROM shops WHERE shopify_domain = $1', [domain]);
+    const result = await db.query('SELECT * FROM shops WHERE shop_domain = $1', [domain]);
     return result.rows[0] || null;
   } catch (error) {
     console.error('Erro ao buscar loja por domínio:', error.message);
