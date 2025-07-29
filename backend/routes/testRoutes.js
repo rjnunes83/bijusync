@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { saveOrUpdateShop, getShopByDomain } = require('../services/shopService');
+import { saveOrUpdateShop, getShopByDomain } from '../services/shopService.js';
 
 // 👉 Rota para testar o salvamento da loja no banco
 router.get('/test-save-shop', async (req, res) => {
