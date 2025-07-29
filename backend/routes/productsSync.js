@@ -44,7 +44,9 @@ router.post('/sync', async (req, res) => {
 
         const data = await response.json();
         const existe = data.products?.some(p =>
-          p.variants?.some(v => v.sku === skuPrincipal)
+          p.variants?.some(
+            v => v.sku && skuPrincipal && v.sku.trim().toLowerCase() === skuPrincipal.trim().toLowerCase()
+          )
         );
 
         if (existe) {
@@ -113,7 +115,9 @@ router.patch('/update', async (req, res) => {
 
         const data = await response.json();
         const produtoExistente = data.products?.find(p =>
-          p.variants?.some(v => v.sku === skuPrincipal)
+          p.variants?.some(
+            v => v.sku && skuPrincipal && v.sku.trim().toLowerCase() === skuPrincipal.trim().toLowerCase()
+          )
         );
 
         if (!produtoExistente) {
@@ -191,7 +195,9 @@ router.delete('/delete', async (req, res) => {
     const data = await response.json();
     const produtosParaDeletar = data.products.filter(p => {
       const skuProduto = p.variants?.[0]?.sku;
-      return skuProduto && !skusMae.includes(skuProduto);
+      return skuProduto && !skusMae.some(
+        skuMae => skuMae.trim().toLowerCase() === skuProduto.trim().toLowerCase()
+      );
     });
 
     let deletados = 0;
