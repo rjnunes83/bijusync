@@ -48,6 +48,8 @@ function transformProduct(product) {
     description: product.body_html,
     vendor: product.vendor,
     tags: product.tags,
+    status: product.status, // 'active' ou 'draft'
+    published_at: product.published_at,
     variants: product.variants?.map((variant) => ({
       id: variant.id,
       title: variant.title,
@@ -86,10 +88,95 @@ async function createProductInStore(productData, accessToken, shop) {
   }
 }
 
+async function deleteProductFromStore(productId, accessToken, shop) {
+  try {
+    const response = await axios.delete(
+      `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.status === 200;
+  } catch (error) {
+    console.error(`❌ Erro ao deletar produto ${productId} da loja ${shop}:`, error?.response?.data || error.message);
+    return false;
+  }
+}
+
+
+async function updateProductInStore(productId, updatedData, accessToken, shop) {
+  try {
+    const response = await axios.put(
+      `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json`,
+      { product: updatedData },
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data.product;
+  } catch (error) {
+    console.error(`❌ Erro ao atualizar produto ${productId} na loja ${shop}:`, error?.response?.data || error.message);
+    throw error;
+  }
+}
+
+async function updateVariantInStore(variantId, updatedData, accessToken, shop) {
+  try {
+    const response = await axios.put(
+      `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/variants/${variantId}.json`,
+      { variant: updatedData },
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data.variant;
+  } catch (error) {
+    console.error(`❌ Erro ao atualizar variante ${variantId} na loja ${shop}:`, error?.response?.data || error.message);
+    throw error;
+  }
+}
+
+async function updateProductStatusInStore(productId, newStatus, accessToken, shop) {
+  try {
+    const response = await axios.put(
+      `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json`,
+      {
+        product: {
+          id: productId,
+          status: newStatus,
+        },
+      },
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return response.data.product;
+  } catch (error) {
+    console.error(`❌ Erro ao atualizar status do produto ${productId} na loja ${shop}:`, error?.response?.data || error.message);
+    throw error;
+  }
+}
+
 export {
   getAllProducts,
   transformProduct,
   getAndTransformAllProducts,
   createProductInStore,
   getAllProductsFromShop,
+  deleteProductFromStore,
+  updateProductInStore,
+  updateVariantInStore,
+  updateProductStatusInStore,
 };
