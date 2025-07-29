@@ -1,5 +1,5 @@
 import express from 'express';
-import shopService from '../services/shopService.js';
+import * as shopService from '../services/shopService.js';
 import { getAndTransformAllProducts as getProductsFromMainStore, createProductInStore } from '../services/shopify/shopifyService.js';
 
 const router = express.Router();
