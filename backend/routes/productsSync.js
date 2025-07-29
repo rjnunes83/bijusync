@@ -98,9 +98,9 @@ router.patch('/update', async (req, res) => {
 
     for (const produtoMae of produtosLojaMae) {
       try {
-        const skuPrincipal = produtoMae?.variants?.[0]?.sku;
-        if (!skuPrincipal) {
-          console.warn(`Produto "${produtoMae.title}" sem SKU definido, ignorado.`);
+        const skusMae = produtoMae?.variants?.map(v => v.sku).filter(Boolean);
+        if (!skusMae || skusMae.length === 0) {
+          console.warn(`Produto "${produtoMae.title}" sem nenhum SKU definido, ignorado.`);
           totalIgnorado++;
           continue;
         }
@@ -116,7 +116,9 @@ router.patch('/update', async (req, res) => {
         const data = await response.json();
         const produtoExistente = data.products?.find(p =>
           p.variants?.some(
-            v => v.sku && skuPrincipal && v.sku.trim().toLowerCase() === skuPrincipal.trim().toLowerCase()
+            v => v.sku && skusMae.some(
+              skuMae => skuMae.trim().toLowerCase() === v.sku.trim().toLowerCase()
+            )
           )
         );
 
