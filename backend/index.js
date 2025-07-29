@@ -27,7 +27,7 @@ app.use(express.json());
 
 // Rotas
 app.use('/auth', shopifyAuthRoutes);
-app.use('/test', testRoutes);
+app.use('/', testRoutes);
 app.use('/api', productRoutes);
 app.use('/products', productsSyncRoutes);
 
