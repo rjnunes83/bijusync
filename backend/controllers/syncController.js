@@ -1,6 +1,6 @@
 // backend/controllers/syncController.js
 import { getAllShops, getShopToken } from '../services/shopService.js';
-import { getAllProductsFromShop } from '../services/shopifyService.js';
+import { getAllProductsFromShop } from '../services/shopify/shopifyService.js';
 import { createProductOnShop } from '../services/productCloneService.js';
 
 export const syncProducts = async (req, res) => {
