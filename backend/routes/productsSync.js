@@ -33,7 +33,7 @@ router.post("/sync", async (req, res) => {
     console.log("✅ Loja encontrada:", loja);
 
     // Lógica de sincronização reativada
-    const produtosLojaMae = await getProductsFromMainStore(process.env.MAIN_STORE_TOKEN);
+    const produtosLojaMae = await getProductsFromMainStore(process.env.SHOPIFY_ACCESS_TOKEN);
     const revendedoraToken = loja.accessToken;
     const markupPercentage = loja.markupPercentage || 0;
 
