@@ -183,3 +183,4 @@ sequelize.sync({ alter: true })
     console.error('🔴 Erro ao sincronizar com o banco de dados:', error.message);
     process.exit(1);
   });
+  
