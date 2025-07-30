@@ -21,7 +21,7 @@ if (!getShopifyAccessToken()) {
 
 async function getAllProducts() {
   try {
-    const response = await axios.get(`${SHOPIFY_BASE_URL}/products.json`, {
+    const response = await axios.get(`https://${SHOPIFY_STORE}/admin/api/${SHOPIFY_API_VERSION}/products.json`, {
       headers: {
         'X-Shopify-Access-Token': getShopifyAccessToken(),
         'Content-Type': 'application/json',
