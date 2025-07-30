@@ -8,10 +8,12 @@ import {
 
 export default function App() {
   return (
-    <html>
+    <html lang="pt">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="description" content="Sua descrição aqui..." />
+        <link rel="icon" type="image/png" href="/favicon.png" />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link
           rel="stylesheet"

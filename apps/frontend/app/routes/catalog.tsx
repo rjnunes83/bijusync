@@ -1,7 +1,15 @@
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, Form, useNavigation } from "@remix-run/react";
-import { Card, Page, DataTable, TextField, Button, Filters, Pagination, Toast } from "@shopify/polaris";
-import { useState } from "react";
+import { useLoaderData, Form, useNavigation, useSubmit } from "@remix-run/react";
+import { Card, Page, DataTable, TextField, Button, Filters, Pagination, Toast, Banner } from "@shopify/polaris";
+import { useState, useEffect } from "react";
+
+type Product = {
+  id: string;
+  image?: string;
+  title: string;
+  category: string;
+  price?: number;
+};
 
 // Loader chama a API do backend para trazer os produtos da loja-mãe
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -22,13 +30,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function Catalog() {
-  const { products, totalPages, categories } = useLoaderData<typeof loader>();
+  const { products, totalPages, categories } = useLoaderData<{ products: Product[]; totalPages: number; categories: string[] }>();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [activePage, setActivePage] = useState(1);
   const [showToast, setShowToast] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigation = useNavigation();
+  const submit = useSubmit();
+
+  // Sincroniza os estados de search, category e activePage com a URL e loader
+  useEffect(() => {
+    const formData = new FormData();
+    formData.set("search", search);
+    formData.set("category", category);
+    formData.set("page", activePage.toString());
+    submit(formData, { method: "get" });
+  }, [search, category, activePage, submit]);
 
   // Selecionar/Deselecionar produtos
   const handleSelectProduct = (productId: string) => {
@@ -41,26 +61,38 @@ export default function Catalog() {
 
   // Importar selecionados
   const handleImport = async () => {
-    await fetch("/import", {
-      method: "POST",
-      body: JSON.stringify({ productIds: selectedProducts }),
-      headers: { "Content-Type": "application/json" },
-    });
-    setShowToast(true);
-    setSelectedProducts([]);
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/import", {
+        method: "POST",
+        body: JSON.stringify({ productIds: selectedProducts }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Erro na importação");
+      }
+      setShowToast(true);
+      setSelectedProducts([]);
+    } catch (err: any) {
+      setError(err.message || "Erro desconhecido");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // DataTable Polaris
-  const rows = products.map((product: any) => [
+  const rows = products.map((product) => [
     <input
       type="checkbox"
       checked={selectedProducts.includes(product.id)}
       onChange={() => handleSelectProduct(product.id)}
     />,
-    <img src={product.image} alt={product.title} width={40} />,
+    <img src={product.image || "https://via.placeholder.com/40"} alt={product.title} width={40} />,
     product.title,
     product.category,
-    product.price ? `€${product.price.toFixed(2)}` : "",
+    product.price !== undefined ? `€${product.price.toFixed(2)}` : "",
   ]);
 
   // Filtros Polaris
@@ -95,7 +127,10 @@ export default function Catalog() {
               setCategory("");
             }}
           />
+          <input type="hidden" name="page" value={activePage} />
+          <input type="hidden" name="category" value={category} />
         </Form>
+        {error && <Banner status="critical">{error}</Banner>}
         <DataTable
           columnContentTypes={["text", "image", "text", "text", "text"]}
           headings={["Selecionar", "Imagem", "Produto", "Categoria", "Preço"]}
@@ -103,8 +138,9 @@ export default function Catalog() {
         />
         <Button
           onClick={handleImport}
-          disabled={selectedProducts.length === 0 || navigation.state === "submitting"}
+          disabled={selectedProducts.length === 0 || navigation.state === "submitting" || loading}
           primary
+          loading={loading}
         >
           Importar para minha loja ({selectedProducts.length})
         </Button>

@@ -1,23 +1,22 @@
 import { PrismaClient } from "@prisma/client";
 
-let prisma: PrismaClient;
-
-// Ajuste para evitar conflitos no escopo global e garantir compatibilidade TS/JS
+// Solução robusta para evitar múltiplas instâncias em dev (hot reload)
+// e garantir singleton em produção e desenvolvimento.
 declare global {
+  // Para ambientes Node.js/TypeScript: evitar conflitos de escopo
   // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+  var prismaGlobal: PrismaClient | undefined;
 }
+
+let prisma: PrismaClient;
 
 if (process.env.NODE_ENV === "production") {
   prisma = new PrismaClient();
 } else {
-  // @ts-ignore
-  if (!global.prisma) {
-    // @ts-ignore
-    global.prisma = new PrismaClient();
+  if (!globalThis.prismaGlobal) {
+    globalThis.prismaGlobal = new PrismaClient();
   }
-  // @ts-ignore
-  prisma = global.prisma;
+  prisma = globalThis.prismaGlobal;
 }
 
-export default prisma; 
+export default prisma;
