@@ -13,6 +13,11 @@ import syncRoutes from './routes/syncRoutes.js';
 // Carrega variáveis de ambiente do arquivo .env
 dotenv.config();
 
+if (!process.env.SHOPIFY_MAIN_STORE || !process.env.SHOPIFY_ACCESS_TOKEN) {
+  console.error('❌ Variáveis de ambiente obrigatórias não definidas: SHOPIFY_MAIN_STORE e SHOPIFY_ACCESS_TOKEN');
+  process.exit(1);
+}
+
 // Conexão com PostgreSQL usando Pool (para queries brutas se necessário)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -83,7 +88,7 @@ app.get('/auth', async (req, res) => {
     return res.status(400).send('Faltando parâmetro "shop" na URL.');
   }
 
-  const apiKey = process.env.SHOPIFY_API_KEY || 'c4631beee345d2062a8a869ab2830a17';
+  const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
   const scopes = 'read_products,write_products';
   const redirectUri = 'https://bijusync.onrender.com/auth/callback';
 
@@ -104,8 +109,8 @@ app.get('/auth/callback', async (req, res) => {
     return res.status(400).send('Parâmetros "shop" e "code" são obrigatórios.');
   }
 
-  const apiKey = process.env.SHOPIFY_API_KEY || 'c4631beee345d2062a8a869ab2830a17';
-  const apiSecret = process.env.SHOPIFY_API_SECRET || 'c5485358887619479f8b82fe85036946';
+  const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
+  const apiSecret = process.env.PUBLIC_APP_CLIENT_SECRET || '6f691b65464f631c41c74afe1d4666e0';
 
   const fetch = (await import('node-fetch')).default;
 
@@ -183,4 +188,3 @@ sequelize.sync({ alter: true })
     console.error('🔴 Erro ao sincronizar com o banco de dados:', error.message);
     process.exit(1);
   });
-  

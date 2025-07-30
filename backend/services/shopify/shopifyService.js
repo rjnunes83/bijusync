@@ -8,20 +8,24 @@ function getShopifyAccessToken() {
 }
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2023-07';
 
-
 const SHOPIFY_BASE_URL = `https://${mainStoreDomain}/admin/api/${SHOPIFY_API_VERSION}`;
 
+// Validação defensiva para garantir que as variáveis essenciais estejam definidas
 if (!mainStoreDomain) {
-  console.error('❌ Variável de ambiente SHOPIFY_MAIN_STORE não está definida.');
+  throw new Error('❌ Variável de ambiente SHOPIFY_MAIN_STORE não está definida.');
 }
 
 if (!getShopifyAccessToken()) {
-  console.error('❌ Variável de ambiente SHOPIFY_ACCESS_TOKEN não está definida.');
+  throw new Error('❌ Variável de ambiente SHOPIFY_ACCESS_TOKEN não está definida.');
 }
 
 async function getAllProducts() {
+  // Busca produtos da loja-mãe (origem dos dados), sempre usando o token de app privado (.env)
+  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN; // Corrigido para usar sempre o token do .env
+  if (!mainStoreDomain || !accessToken) {
+    throw new Error('SHOPIFY_MAIN_STORE e/ou SHOPIFY_ACCESS_TOKEN não definidos!');
+  }
   try {
-    const accessToken = process.env.MAIN_STORE_TOKEN;
     const response = await axios.get(`https://${mainStoreDomain}/admin/api/${SHOPIFY_API_VERSION}/products.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -39,6 +43,8 @@ async function getAllProducts() {
 }
 
 async function getAllProductsFromShop(token, shop) {
+  // Função para buscar produtos de lojas revendedoras, utiliza token passado (geralmente do banco ou OAuth)
+  // Atenção: aqui o token deve ser o correto para a loja específica, diferente do token da loja-mãe.
   try {
     const response = await axios.get(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json`, {
       headers: {
@@ -79,11 +85,14 @@ function transformProduct(product) {
 
 
 async function getAndTransformAllProducts() {
+  // Função que busca e transforma produtos da loja-mãe, sempre usando token do .env
   const products = await getAllProducts();
   return products.map(transformProduct);
 }
 
 async function createProductInStore(productData, accessToken, shop) {
+  // Função para criar produto em loja revendedora, token deve ser o da loja específica
+  // Atenção: o token aqui não é o da loja-mãe, mas sim do lojista ou OAuth apropriado.
   try {
     const response = await axios.post(
       `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json`,
@@ -103,6 +112,8 @@ async function createProductInStore(productData, accessToken, shop) {
 }
 
 async function deleteProductFromStore(productId, accessToken, shop) {
+  // Função para deletar produto em loja revendedora, token deve ser o da loja específica
+  // Atenção: o token aqui não é o da loja-mãe, mas sim do lojista ou OAuth apropriado.
   try {
     const response = await axios.delete(
       `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json`,
@@ -122,6 +133,8 @@ async function deleteProductFromStore(productId, accessToken, shop) {
 
 
 async function updateProductInStore(productId, updatedData, accessToken, shop) {
+  // Função para atualizar produto em loja revendedora, token deve ser o da loja específica
+  // Atenção: o token aqui não é o da loja-mãe, mas sim do lojista ou OAuth apropriado.
   try {
     const response = await axios.put(
       `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json`,
@@ -141,6 +154,8 @@ async function updateProductInStore(productId, updatedData, accessToken, shop) {
 }
 
 async function updateVariantInStore(variantId, updatedData, accessToken, shop) {
+  // Função para atualizar variante em loja revendedora, token deve ser o da loja específica
+  // Atenção: o token aqui não é o da loja-mãe, mas sim do lojista ou OAuth apropriado.
   try {
     const response = await axios.put(
       `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/variants/${variantId}.json`,
@@ -160,6 +175,8 @@ async function updateVariantInStore(variantId, updatedData, accessToken, shop) {
 }
 
 async function updateProductStatusInStore(productId, newStatus, accessToken, shop) {
+  // Função para atualizar status do produto em loja revendedora, token deve ser o da loja específica
+  // Atenção: o token aqui não é o da loja-mãe, mas sim do lojista ou OAuth apropriado.
   try {
     const response = await axios.put(
       `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json`,
