@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import axios from 'axios';
 
 const SHOPIFY_STORE = process.env.SHOPIFY_MAIN_STORE;
