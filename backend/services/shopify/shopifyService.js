@@ -3,16 +3,27 @@ dotenv.config();
 import axios from 'axios';
 
 const SHOPIFY_STORE = process.env.SHOPIFY_MAIN_STORE;
-const SHOPIFY_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
+function getShopifyAccessToken() {
+  return process.env.SHOPIFY_ACCESS_TOKEN;
+}
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2023-07';
 
+
 const SHOPIFY_BASE_URL = `https://${SHOPIFY_STORE}/admin/api/${SHOPIFY_API_VERSION}`;
+
+if (!SHOPIFY_STORE) {
+  console.error('❌ Variável de ambiente SHOPIFY_MAIN_STORE não está definida.');
+}
+
+if (!getShopifyAccessToken()) {
+  console.error('❌ Variável de ambiente SHOPIFY_ACCESS_TOKEN não está definida.');
+}
 
 async function getAllProducts() {
   try {
     const response = await axios.get(`${SHOPIFY_BASE_URL}/products.json`, {
       headers: {
-        'X-Shopify-Access-Token': SHOPIFY_ACCESS_TOKEN,
+        'X-Shopify-Access-Token': getShopifyAccessToken(),
         'Content-Type': 'application/json',
       },
       params: {
@@ -181,4 +192,5 @@ export {
   updateProductInStore,
   updateVariantInStore,
   updateProductStatusInStore,
+  getShopifyAccessToken,
 };

@@ -33,7 +33,7 @@ router.post("/sync", async (req, res) => {
     console.log("✅ Loja encontrada:", loja);
 
     // Lógica de sincronização reativada
-    const produtosLojaMae = await getProductsFromMainStore(process.env.SHOPIFY_ACCESS_TOKEN);
+    const produtosLojaMae = await getProductsFromMainStore();
     const revendedoraToken = loja.accessToken;
     const markupPercentage = loja.markupPercentage || 0;
 
@@ -68,7 +68,7 @@ router.patch('/update', async (req, res) => {
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
-    const produtosLojaMae = await getProductsFromMainStore(shop.accessToken);
+    const produtosLojaMae = await getProductsFromMainStore();
 
     let totalAtualizado = 0, totalIgnorado = 0, totalFalhou = 0;
 
@@ -161,7 +161,7 @@ router.delete('/delete', async (req, res) => {
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
-    const produtosMae = await getProductsFromMainStore(shop.accessToken);
+    const produtosMae = await getProductsFromMainStore();
     const skusMae = produtosMae.flatMap(p => p.variants?.map(v => v.sku)).filter(Boolean);
 
     const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?limit=250`, {
@@ -214,7 +214,7 @@ router.patch('/sync-status', async (req, res) => {
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
     const revendedoraToken = shop.accessToken;
-    const produtosMae = await getProductsFromMainStore(shop.accessToken);
+    const produtosMae = await getProductsFromMainStore();
 
     const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?limit=250&fields=id,title,variants,status`, {
       method: 'GET',
