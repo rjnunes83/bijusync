@@ -8,8 +8,8 @@ export const syncProducts = async (req, res) => {
     console.log('🔁 Iniciando sincronização...');
 
     // 1. Buscar produtos da loja-mãe
-    const mainShopDomain = 'revenda-biju.myshopify.com';
-    const mainShopToken = await getShopToken(mainShopDomain);
+    const mainShopDomain = process.env.SHOPIFY_MAIN_STORE;
+    const mainShopToken = process.env.MAIN_STORE_TOKEN;
     const products = await getAllProductsFromShop(mainShopToken, mainShopDomain);
 
     console.log(`📦 ${products.length} produtos obtidos da loja-mãe.`);
