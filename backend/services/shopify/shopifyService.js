@@ -10,7 +10,7 @@ async function getAllProducts() {
   try {
     const response = await axios.get(`${SHOPIFY_BASE_URL}/products.json`, {
       headers: {
-        'X-Shopify-Access-Token': SHOPIFY_TOKEN,
+        'X-Shopify-Access-Token': SHOPIFY_ACCESS_TOKEN,
         'Content-Type': 'application/json',
       },
       params: {
