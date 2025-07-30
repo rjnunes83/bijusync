@@ -7,11 +7,18 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
-// Checagem básica das envs (opcional, mas altamente recomendado)
-if (!process.env.SHOPIFY_API_KEY || !process.env.SHOPIFY_API_SECRET || !process.env.SHOPIFY_APP_URL) {
-  throw new Error("Missing required Shopify ENV variables");
+// Checagem das principais variáveis de ambiente
+if (
+  !process.env.SHOPIFY_API_KEY ||
+  !process.env.SHOPIFY_API_SECRET ||
+  !process.env.SHOPIFY_APP_URL
+) {
+  throw new Error(
+    "Missing one or more required Shopify ENV variables (SHOPIFY_API_KEY, SHOPIFY_API_SECRET, SHOPIFY_APP_URL)"
+  );
 }
 
+// Instancia o app Shopify com configuração correta do Prisma Session Storage
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
@@ -19,9 +26,10 @@ const shopify = shopifyApp({
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
+  // ATENÇÃO: 'Session' (case sensitive) e schema 'public'
   sessionStorage: new PrismaSessionStorage(prisma, {
-    sessionModel: 'Session',
-    schema: 'public',
+    sessionModel: "Session",
+    schema: "public",
   }),
   distribution: AppDistribution.AppStore,
   future: {
