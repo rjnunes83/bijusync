@@ -4,8 +4,16 @@ import {
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export const sessionStorage = new PrismaSessionStorage(prisma, {
+  sessionModel: "Session", // Case sensitive!
+  schema: "public",        // Adicione isso!
+});
 
 // Checagem das principais variáveis de ambiente
 if (
@@ -26,11 +34,7 @@ const shopify = shopifyApp({
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
-  // ATENÇÃO: 'Session' (case sensitive) e schema 'public'
-  sessionStorage: new PrismaSessionStorage(prisma, {
-    sessionModel: "Session",
-    schema: "public",
-  }),
+  sessionStorage,
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,
