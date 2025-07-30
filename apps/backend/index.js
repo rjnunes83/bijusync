@@ -4,11 +4,15 @@ import cors from 'cors';
 import { Pool } from 'pg';
 import sequelize from './config/db.js';
 
+dotenv.config();
+console.log('DATABASE_URL carregada:', process.env.DATABASE_URL);
+
 import shopifyAuthRoutes from './routes/shopifyAuth.js';
 import testRoutes from './routes/testRoutes.js';
 import productRoutes from './routes/products.js';
 import productsSyncRoutes from './routes/productsSync.js';
 import syncRoutes from './routes/syncRoutes.js';
+import catalogRoutes from './routes/catalog.js';
 
 // Carrega variáveis de ambiente do arquivo .env
 dotenv.config();
@@ -77,6 +81,7 @@ app.get('/products', async (req, res) => {
 app.use('/auth', shopifyAuthRoutes);
 app.use('/', testRoutes);
 app.use('/api', productRoutes);
+app.use('/api/catalog', catalogRoutes);
 app.use('/products', productsSyncRoutes);
 app.use('/', syncRoutes); // rota /sync
 
