@@ -7,14 +7,22 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+// Checagem básica das envs (opcional, mas altamente recomendado)
+if (!process.env.SHOPIFY_API_KEY || !process.env.SHOPIFY_API_SECRET || !process.env.SHOPIFY_APP_URL) {
+  throw new Error("Missing required Shopify ENV variables");
+}
+
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiSecretKey: process.env.SHOPIFY_API_SECRET,
   apiVersion: ApiVersion.January25,
   scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
+  appUrl: process.env.SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
+  sessionStorage: new PrismaSessionStorage(prisma, {
+    sessionModel: 'Session',
+    schema: 'public',
+  }),
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,
@@ -33,4 +41,3 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
-
