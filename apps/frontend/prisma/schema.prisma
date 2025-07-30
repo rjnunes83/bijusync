@@ -23,6 +23,8 @@ model Session {
   locale        String?
   collaborator  Boolean? @default(false)
   emailVerified Boolean? @default(false)
+
+  @@map("session")
 }
 
 model Shop {
@@ -31,4 +33,6 @@ model Shop {
   access_token   String
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
+
+  @@map("shop")
 }
