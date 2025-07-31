@@ -21,7 +21,6 @@
     "build": "npm run build --workspaces",
     "clean": "rimraf node_modules apps/*/node_modules",
     "test": "npm run test --workspaces",
-    // Enterprise-ready scripts
     "lint": "eslint . --ext .js,.ts,.tsx",
     "format": "prettier --write .",
     "prepare": "husky install"
