@@ -5,6 +5,7 @@ import { Link } from "@remix-run/react";
 /**
  * Dashboard principal da plataforma Biju & Cia. (Enterprise Ready)
  * - Mostra ações principais, dicas e integração perfeita Polaris + Remix
+ * - Agora atuando como rota filha, renderizando dentro do AppLayout de app.tsx
  */
 export default function DashboardPage() {
   return (

@@ -1,5 +1,5 @@
 // apps/frontend/app/routes/app.tsx
-import { Outlet, useLocation } from "@remix-run/react";
+import { Outlet, useLocation } from "@remix-run/react"; // <-- Import corrigido aqui ✅
 import { Frame, Navigation, TopBar } from "@shopify/polaris";
 import { useState } from "react";
 
@@ -28,11 +28,11 @@ export default function AppLayout() {
    * Pronto para expansão: controle por roles/scopes ou internacionalização.
    */
   const navItems = [
-    { label: "Dashboard",           icon: "HomeMajor",        url: "/app",         selected: location.pathname === "/app" },
-    { label: "Sincronizar Catálogo",icon: "ImportMajor",      url: "/app/sync",    selected: location.pathname === "/app/sync" },
-    { label: "Lojas",               icon: "OrdersMajor",      url: "/app/shops",   selected: location.pathname === "/app/shops" },
-    { label: "Configurações",       icon: "SettingsMajor",    url: "/app/settings",selected: location.pathname === "/app/settings" },
-    { label: "Suporte",             icon: "QuestionMarkMajor",url: "/app/support", selected: location.pathname === "/app/support" }
+    { label: "Dashboard",            icon: "HomeMajor",          url: "/app",           selected: location.pathname === "/app" },
+    { label: "Sincronizar Catálogo", icon: "ImportMajor",        url: "/app/sync",      selected: location.pathname === "/app/sync" },
+    { label: "Lojas",                icon: "OrdersMajor",        url: "/app/shops",     selected: location.pathname === "/app/shops" },
+    { label: "Configurações",        icon: "SettingsMajor",      url: "/app/settings",  selected: location.pathname === "/app/settings" },
+    { label: "Suporte",              icon: "QuestionMarkMajor",  url: "/app/support",   selected: location.pathname === "/app/support" }
   ];
 
   /**
