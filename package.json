@@ -1,14 +1,45 @@
 {
   "name": "biju-sync-platform",
   "private": true,
+  "description": "Plataforma de sincronização entre lojas Shopify da Biju & Cia.",
+  "author": "Rodrigo Nunes <rodrigo@nx7biz.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rjnunes83/biju-sync"
+  },
   "workspaces": [
     "apps/backend",
     "apps/frontend"
   ],
   "scripts": {
+    "install:all": "npm install --workspaces",
     "dev:backend": "cd apps/backend && npm run dev",
     "dev:frontend": "cd apps/frontend && npm run dev",
     "start:backend": "cd apps/backend && npm start",
-    "start:frontend": "cd apps/frontend && npm start"
+    "start:frontend": "cd apps/frontend && npm start",
+    "build": "npm run build --workspaces",
+    "clean": "rimraf node_modules apps/*/node_modules",
+    "test": "npm run test --workspaces",
+    // Enterprise-ready scripts
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "format": "prettier --write .",
+    "prepare": "husky install"
+  },
+  "engines": {
+    "node": ">=18.20.0"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx,json,css,md}": [
+      "prettier --write"
+    ],
+    "*.{js,ts,tsx}": [
+      "eslint --fix"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
   }
 }
