@@ -72,9 +72,11 @@ app.get('/auth', async (req, res) => {
 });
 
 app.get('/auth/callback', async (req, res) => {
+  console.log('--- [INICIO /auth/callback] ---', { query: req.query, time: new Date().toISOString() });
   const { shop, code } = req.query;
   if (!shop || !code) {
     console.warn('⚠️ Callback chamado sem shop ou code:', { shop, code });
+    console.error('--- [FIM /auth/callback - ERRO] ---', { shop, code, tokenData: undefined, time: new Date().toISOString() });
     return res.status(400).send('Parâmetros "shop" e "code" são obrigatórios.');
   }
   const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
@@ -96,6 +98,7 @@ app.get('/auth/callback', async (req, res) => {
 
     if (!tokenData.access_token) {
       console.error('❌ Falha ao obter access_token da Shopify:', tokenData);
+      console.error('--- [FIM /auth/callback - ERRO] ---', { shop, code, tokenData, time: new Date().toISOString() });
       return res.status(500).send('Erro ao obter token de acesso.');
     }
 
@@ -112,9 +115,11 @@ app.get('/auth/callback', async (req, res) => {
     );
 
     console.info('✅ Loja autenticada e salva no banco:', result.rows[0]);
+    console.log('--- [FIM /auth/callback - SUCESSO] ---', { shop, result: result.rows[0], time: new Date().toISOString() });
     res.send('✅ Aplicativo instalado com sucesso!');
   } catch (err) {
     console.error('❌ Erro ao obter token de acesso ou salvar no banco:', err);
+    console.error('--- [FIM /auth/callback - ERRO] ---', { shop, code, tokenData: undefined, time: new Date().toISOString() });
     res.status(500).send('Erro ao processar autenticação.');
   }
 });
