@@ -18,12 +18,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const search = url.searchParams.get("search") || "";
   const category = url.searchParams.get("category") || "";
 
-  // Pega a URL base do .env ou usa o endereço local padrão
+  // *** CORRIGIDO PARA localhost:3000 ***
   const baseUrl =
-    process.env.BASE_URL || "http://localhost:55072";
+    process.env.BASE_URL || "http://localhost:3000";
 
   const apiUrl = `${baseUrl}/api/catalog?page=${page}&search=${search}&category=${category}`;
   const response = await fetch(apiUrl);
+  if (!response.ok) {
+    throw new Error("Erro ao buscar produtos do catálogo!");
+  }
   const data = await response.json();
 
   return json(data); // { products, totalPages, categories }

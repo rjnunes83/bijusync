@@ -1,31 +1,32 @@
-import {
-  Links,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from "@remix-run/react";
+// apps/frontend/app/root.tsx
+
+import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from "@remix-run/react";
+import { AppProvider } from "@shopify/polaris";
+import ptBrTranslations from "./locales/pt-BR.json";
+import "@shopify/polaris/build/esm/styles.css";
 
 export default function App() {
   return (
-    <html lang="pt">
+    <Document>
+      <AppProvider i18n={ptBrTranslations}>
+        <Outlet />
+      </AppProvider>
+    </Document>
+  );
+}
+
+function Document({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <meta name="description" content="Sua descrição aqui..." />
-        <link rel="icon" type="image/png" href="/favicon.png" />
-        <link rel="preconnect" href="https://cdn.shopify.com/" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
-        />
         <Meta />
         <Links />
       </head>
       <body>
-        <Outlet />
+        {children}
         <ScrollRestoration />
         <Scripts />
+        <LiveReload />
       </body>
     </html>
   );

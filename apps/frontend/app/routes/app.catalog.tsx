@@ -164,15 +164,15 @@ export default function CatalogPage() {
               >
                 <Text variant="headingMd">{item.title}</Text>
                 <div>
-                  <Text as="span" color="subdued">
+                  <Text as="span" tone="subdued">
                     SKU: {item.sku}
                   </Text>
-                  <Text as="span" color="subdued" style={{ marginLeft: 10 }}>
+                  <Text as="span" tone="subdued" style={{ marginLeft: 10 }}>
                     Categoria: {item.category}
                   </Text>
                 </div>
                 <div>
-                  <Badge status={item.available ? "success" : "critical"}>
+                  <Badge tone={item.available ? "success" : "critical"}>
                     {item.available ? "Disponível" : "Indisponível"}
                   </Badge>
                   <Text

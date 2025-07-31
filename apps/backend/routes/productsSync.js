@@ -18,7 +18,7 @@ router.post("/sync", async (req, res) => {
   try {
     console.log("🔍 Buscando loja com domínio:", shopifyDomain);
     const lojas = await sequelize.query(
-      "SELECT * FROM shops WHERE shopify_domain = $1",
+      "SELECT * FROM shop WHERE shopify_domain = $1",
       {
         bind: [shopifyDomain],
         type: Sequelize.QueryTypes.SELECT,
@@ -34,7 +34,7 @@ router.post("/sync", async (req, res) => {
 
     // Lógica de sincronização reativada
     const produtosLojaMae = await getProductsFromMainStore();
-    const revendedoraToken = loja.accessToken;
+    const revendedoraToken = loja.access_token;
     const markupPercentage = loja.markupPercentage || 0;
 
     let totalCriado = 0;

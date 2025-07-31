@@ -74,6 +74,7 @@ router.get('/callback', async (req, res) => {
     const accessToken = tokenResponse.data.access_token;
 
     // Salva ou atualiza os dados da loja e token no banco de dados
+    console.log('Salvando loja:', shop, 'Access Token:', accessToken);
     await saveOrUpdateShop(shop, accessToken);
 
     // Redireciona para o painel de apps da loja após sucesso na instalação
