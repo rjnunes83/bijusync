@@ -149,6 +149,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Endpoint de auditoria para listar lojas conectadas (seguro para uso interno)
+app.get('/api/shops', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT shopify_domain, access_token, created_at, updated_at FROM shop ORDER BY created_at DESC');
+    res.json({ shops: result.rows });
+  } catch (err) {
+    console.error('Erro ao listar lojas:', err);
+    res.status(500).json({ success: false, error: 'Erro ao listar lojas' });
+  }
+});
+
 // Middleware global de tratamento de erro (sempre último!)
 app.use((err, req, res, next) => {
   console.error('❌ ERRO NÃO CAPTURADO:', err);
