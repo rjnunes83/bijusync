@@ -1,8 +1,8 @@
 // apps/frontend/app/root.tsx
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Outlet, useLoaderData, Link } from "@remix-run/react";
-import { AppProvider, Frame } from "@shopify/polaris";
+import { Outlet, useLoaderData, Link, Links } from "@remix-run/react";
+import { AppProvider, Frame, Banner, Page } from "@shopify/polaris";
 import ptBR from "@shopify/polaris/locales/pt-BR.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
@@ -15,7 +15,6 @@ export const links: LinksFunction = () => [
 
 /**
  * Loader global enterprise-ready.
- * Injeta informações seguras no contexto da app.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -30,21 +29,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 /**
  * Root da aplicação (contexto global, tema, idioma e roteamento).
- * Enterprise: Provider Polaris, fallback, outlet e menu superior.
  */
 export default function AppRoot() {
   const { shop, isAdmin, mainShopDomain } = useLoaderData<typeof loader>();
 
-  // Fallback amigável se a loja não está definida na URL
+  // Fallback visual enterprise com Banner Polaris
   if (!shop) {
     return (
-      <div style={fallbackStyle}>
-        <span role="img" aria-label="Atenção" style={{ fontSize: 28 }}>⚠️</span>
-        <div style={{ marginTop: 8 }}>
-          Parâmetro <b>?shop=</b> ausente na URL.<br />
-          Exemplo: <code>?shop=sualoja.myshopify.com</code>
-        </div>
-      </div>
+      <>
+        <Links /> {/* Garante o carregamento do CSS Polaris */}
+        <Page>
+          <div style={{ maxWidth: 560, margin: "60px auto" }}>
+            <Banner
+              status="critical"
+              title="Parâmetro ?shop= ausente na URL"
+            >
+              Por favor, adicione <b>?shop=sualoja.myshopify.com</b> à URL para iniciar.<br />
+              Exemplo: <code>?shop=sualoja.myshopify.com</code>
+            </Banner>
+          </div>
+        </Page>
+      </>
     );
   }
 
@@ -52,7 +57,6 @@ export default function AppRoot() {
     <AppProvider i18n={ptBR}>
       <Frame>
         <HeaderMenu isAdmin={isAdmin} />
-        {/* Outlet recebe o contexto global do loader */}
         <Outlet context={{ shop, isAdmin, mainShopDomain }} />
       </Frame>
     </AppProvider>
@@ -61,7 +65,6 @@ export default function AppRoot() {
 
 /**
  * Menu superior enterprise, fácil de migrar para Navigation lateral.
- * Usa Link do Remix para SSR e hidratação correta.
  */
 function HeaderMenu({ isAdmin }: { isAdmin: boolean }) {
   return (
@@ -80,20 +83,6 @@ function HeaderMenu({ isAdmin }: { isAdmin: boolean }) {
 }
 
 // --- Enterprise styles isolados ---
-const fallbackStyle = {
-  color: "#B00020",
-  padding: 48,
-  fontWeight: 700,
-  fontFamily: "Inter, Arial, sans-serif",
-  background: "#FFF4F4",
-  border: "2px solid #B00020",
-  borderRadius: 12,
-  maxWidth: 520,
-  margin: "64px auto",
-  textAlign: "center" as const,
-  boxShadow: "0 4px 24px #b0002020"
-};
-
 const navBarStyle = {
   display: "flex",
   gap: 32,
