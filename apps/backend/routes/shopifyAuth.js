@@ -7,7 +7,22 @@ import { saveOrUpdateShop } from '../services/shopService.js';
 
 dotenv.config();
 
+
 const router = express.Router();
+
+/**
+ * GET /auth/login
+ * Alias amigável para iniciar OAuth (aceita shop via query)
+ * Exemplo: /auth/login?shop=testebijuecia.myshopify.com
+ */
+router.get('/auth/login', (req, res) => {
+  const shop = req.query.shop;
+  if (!shop) {
+    return res.status(400).json({ error: 'Parâmetro "shop" ausente.' });
+  }
+  // Redireciona para a rota /auth, que já faz todo o fluxo OAuth
+  return res.redirect(`/auth?shop=${encodeURIComponent(shop)}`);
+});
 
 /**
  * GET /auth

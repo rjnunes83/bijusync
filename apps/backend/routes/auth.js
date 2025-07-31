@@ -32,6 +32,26 @@ function generateState() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+// 1A. Suporte à rota padrão Shopify "/auth/login" para iniciar OAuth (boa prática)
+// Permite instalação via /auth/login?shop=xxxx.myshopify.com ou /auth?shop=xxxx.myshopify.com
+router.get('/login', (req, res) => {
+  const shop = req.query.shop;
+  if (!shop) return res.status(400).send('Shop não informado.');
+
+  // State seguro para CSRF
+  const state = generateState();
+  res.cookie('state', state, { httpOnly: true, secure: true, sameSite: 'lax' });
+
+  const installUrl = `https://${shop}/admin/oauth/authorize` +
+    `?client_id=${SHOPIFY_API_KEY}` +
+    `&scope=${SCOPES}` +
+    `&state=${state}` +
+    `&redirect_uri=${REDIRECT_URI}`;
+
+  console.info(`[Shopify OAuth] (login endpoint) Iniciando instalação para loja: ${shop}`);
+  return res.redirect(installUrl);
+});
+
 // 1. Inicia instalação OAuth da app na loja Shopify
 router.get('/', (req, res) => {
   const shop = req.query.shop;

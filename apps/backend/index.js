@@ -46,36 +46,18 @@ app.use('/api/catalog', catalogRoutes);
 app.use('/products', productsSyncRoutes);
 app.use('/', syncRoutes);
 
-// Rota para buscar produtos da Shopify (apenas exemplo, mantenha em controller separado depois)
-app.get('/products', async (req, res) => {
-  try {
-    const fetch = (await import('node-fetch')).default;
-    const result = await pool.query('SELECT shopify_domain, access_token FROM shop ORDER BY created_at DESC LIMIT 1');
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Nenhuma loja conectada encontrada.' });
-    }
-
-    const { shopify_domain, access_token } = result.rows[0];
-    const shopifyResponse = await fetch(`https://${shopify_domain}/admin/api/2024-04/products.json`, {
-      headers: {
-        'X-Shopify-Access-Token': access_token,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!shopifyResponse.ok) {
-      const errorText = await shopifyResponse.text();
-      return res.status(shopifyResponse.status).json({ success: false, error: `Erro da Shopify: ${errorText}` });
-    }
-
-    const data = await shopifyResponse.json();
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error('❌ Erro ao buscar produtos:', err);
-    res.status(500).json({ success: false, error: 'Erro interno ao buscar produtos' });
-  }
+// Alias para compatibilidade com Shopify: /auth/login também redireciona para instalação OAuth
+app.get('/auth/login', async (req, res) => {
+  const shop = req.query.shop;
+  if (!shop) return res.status(400).send('Faltando parâmetro "shop" na URL.');
+  const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
+  const scopes = 'read_products,write_products';
+  const redirectUri = process.env.PUBLIC_APP_REDIRECT_URI || 'https://bijusync.onrender.com/auth/callback';
+  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${apiKey}&scope=${scopes}&redirect_uri=${redirectUri}`;
+  console.info(`🔗 [LOGIN] Redirecionando para instalação: ${installUrl}`);
+  res.redirect(installUrl);
 });
+
 
 // Rota de instalação e callback OAuth
 app.get('/auth', async (req, res) => {
@@ -123,6 +105,37 @@ app.get('/auth/callback', async (req, res) => {
   } catch (err) {
     console.error('❌ Erro ao obter token de acesso:', err);
     res.status(500).send('Erro ao processar autenticação.');
+  }
+});
+
+// Rota para buscar produtos da Shopify (apenas exemplo, mantenha em controller separado depois)
+app.get('/products', async (req, res) => {
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const result = await pool.query('SELECT shopify_domain, access_token FROM shop ORDER BY created_at DESC LIMIT 1');
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Nenhuma loja conectada encontrada.' });
+    }
+
+    const { shopify_domain, access_token } = result.rows[0];
+    const shopifyResponse = await fetch(`https://${shopify_domain}/admin/api/2024-04/products.json`, {
+      headers: {
+        'X-Shopify-Access-Token': access_token,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!shopifyResponse.ok) {
+      const errorText = await shopifyResponse.text();
+      return res.status(shopifyResponse.status).json({ success: false, error: `Erro da Shopify: ${errorText}` });
+    }
+
+    const data = await shopifyResponse.json();
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('❌ Erro ao buscar produtos:', err);
+    res.status(500).json({ success: false, error: 'Erro interno ao buscar produtos' });
   }
 });
 
