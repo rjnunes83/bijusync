@@ -3,7 +3,7 @@
 client_id = "2274538c7776404900c3d3ecbb22602b"
 name = "Biju & Cia. Connector"
 handle = "biju-cia-connector"
-application_url = "https://deutsch-briefs-lower-acer.trycloudflare.com"
+application_url = "https://standing-intensity-oman-piece.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,7 +26,7 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://deutsch-briefs-lower-acer.trycloudflare.com/auth/callback", "https://deutsch-briefs-lower-acer.trycloudflare.com/auth/shopify/callback", "https://deutsch-briefs-lower-acer.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://standing-intensity-oman-piece.trycloudflare.com/auth/callback", "https://standing-intensity-oman-piece.trycloudflare.com/auth/shopify/callback", "https://standing-intensity-oman-piece.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

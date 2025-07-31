@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "install:all": "npm install --workspaces",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd apps/backend && npm run dev",
     "dev:frontend": "cd apps/frontend && npm run dev",
     "start:backend": "cd apps/backend && npm start",
@@ -40,5 +41,9 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7"
   }
 }
