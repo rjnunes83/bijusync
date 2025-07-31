@@ -73,7 +73,10 @@ app.get('/auth', async (req, res) => {
 
 app.get('/auth/callback', async (req, res) => {
   const { shop, code } = req.query;
-  if (!shop || !code) return res.status(400).send('Parâmetros "shop" e "code" são obrigatórios.');
+  if (!shop || !code) {
+    console.warn('⚠️ Callback chamado sem shop ou code:', { shop, code });
+    return res.status(400).send('Parâmetros "shop" e "code" são obrigatórios.');
+  }
   const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
   const apiSecret = process.env.PUBLIC_APP_CLIENT_SECRET || '6f691b65464f631c41c74afe1d4666e0';
   const fetch = (await import('node-fetch')).default;
@@ -81,6 +84,7 @@ app.get('/auth/callback', async (req, res) => {
   const accessTokenPayload = { client_id: apiKey, client_secret: apiSecret, code };
 
   try {
+    console.log('🔄 Solicitando access_token para loja:', shop, '| Payload:', accessTokenPayload);
     const response = await fetch(accessTokenRequestUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -88,22 +92,29 @@ app.get('/auth/callback', async (req, res) => {
     });
 
     const tokenData = await response.json();
+    console.log('🔑 Resposta do tokenData:', tokenData);
+
     if (!tokenData.access_token) {
       console.error('❌ Falha ao obter access_token da Shopify:', tokenData);
       return res.status(500).send('Erro ao obter token de acesso.');
     }
 
-    await pool.query(
+    // Log antes do insert no banco
+    console.log('💾 Inserindo no banco:', { shop, access_token: tokenData.access_token });
+
+    const result = await pool.query(
       `INSERT INTO shop (shopify_domain, access_token, created_at, updated_at)
        VALUES ($1, $2, NOW(), NOW())
        ON CONFLICT (shopify_domain) DO UPDATE
-       SET access_token = EXCLUDED.access_token, updated_at = NOW()`,
+       SET access_token = EXCLUDED.access_token, updated_at = NOW()
+       RETURNING *`,
       [shop, tokenData.access_token]
     );
-    console.info(`✅ Loja autenticada e salva no banco: ${shop}`);
+
+    console.info('✅ Loja autenticada e salva no banco:', result.rows[0]);
     res.send('✅ Aplicativo instalado com sucesso!');
   } catch (err) {
-    console.error('❌ Erro ao obter token de acesso:', err);
+    console.error('❌ Erro ao obter token de acesso ou salvar no banco:', err);
     res.status(500).send('Erro ao processar autenticação.');
   }
 });
