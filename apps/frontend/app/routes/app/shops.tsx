@@ -11,11 +11,20 @@ import {
 } from "@shopify/polaris";
 
 /**
- * Lista de lojas conectadas à plataforma.
- * [Enterprise] Pronto para paginação, filtro e exportação futura.
+ * [Enterprise] Tipagem da loja
+ */
+type Shop = {
+  shopify_domain: string;
+  created_at?: string;
+  updated_at?: string;
+  access_token?: string;
+};
+
+/**
+ * Lista de lojas conectadas à plataforma (Enterprise Ready)
  */
 export default function ShopsPage() {
-  const [shops, setShops] = useState<any[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +66,11 @@ export default function ShopsPage() {
       )}
 
       {error && (
-        <Banner status="critical" title="Erro ao carregar lojas" action={{ content: "Tentar novamente", onAction: () => window.location.reload() }}>
+        <Banner
+          status="critical"
+          title="Erro ao carregar lojas"
+          action={{ content: "Tentar novamente", onAction: () => window.location.reload() }}
+        >
           <TextContainer>{error}</TextContainer>
         </Banner>
       )}
@@ -68,6 +81,7 @@ export default function ShopsPage() {
             heading="Nenhuma loja conectada ainda"
             action={{ content: "Conectar nova loja", url: "/app/onboarding" }}
             image="https://cdn.shopify.com/s/files/1/0757/9955/files/empty-state.svg"
+            imageAlt="Nenhuma loja conectada"
           >
             <p>Adicione sua primeira loja para começar a sincronizar produtos!</p>
           </EmptyState>
@@ -77,7 +91,7 @@ export default function ShopsPage() {
               columnContentTypes={["text", "text", "text", "text"]}
               headings={["Domínio", "Criada em", "Atualizada em", "Status"]}
               rows={rows}
-              // [Enterprise] Adapte para paginação/ações se necessário
+              // Pronto para paginação, ações e filtros no futuro!
             />
           </Card>
         )

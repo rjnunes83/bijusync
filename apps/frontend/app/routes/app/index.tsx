@@ -1,91 +1,38 @@
 // apps/frontend/app/routes/app/index.tsx
-import { Outlet, useLocation } from "@remix-run/react";
-import {
-  Frame,
-  Navigation,
-  TopBar
-} from "@shopify/polaris";
-import { useState } from "react";
+import { Page, Card, Layout, Banner, TextContainer, Button } from "@shopify/polaris";
+import { Link } from "@remix-run/react";
 
 /**
- * Enterprise: Configuração do logo (pode evoluir para dinâmico).
+ * Dashboard principal da plataforma Biju & Cia. (Enterprise Ready)
+ * - Mostra ações principais, dicas e integração perfeita Polaris + Remix
  */
-const logo = {
-  width: 124,
-  topBarSource: "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
-  url: "/app",
-  accessibilityLabel: "Biju & Cia. Connector"
-};
-
-/**
- * Enterprise Layout da dashboard:
- * - Sidebar Navigation Polaris (ícones por string!)
- * - TopBar com menu do usuário (futuro multiuser)
- * - Outlet para render das rotas filhas
- * - Não importa AppProvider aqui, pois já vem do root!
- */
-export default function AppLayout() {
-  const location = useLocation();
-  const [userMenuActive, setUserMenuActive] = useState(false);
-
-  // Menu lateral enterprise, pronto para expansão por roles/scopes
-  const navItems = [
-    { label: "Dashboard",           icon: "HomeMajor",        url: "/app",         selected: location.pathname === "/app" },
-    { label: "Sincronizar Catálogo",icon: "ImportMajor",      url: "/app/sync",    selected: location.pathname === "/app/sync" },
-    { label: "Lojas",               icon: "OrdersMajor",      url: "/app/shops",   selected: location.pathname === "/app/shops" },
-    { label: "Configurações",       icon: "SettingsMajor",    url: "/app/settings",selected: location.pathname === "/app/settings" },
-    { label: "Suporte",             icon: "QuestionMarkMajor",url: "/app/support", selected: location.pathname === "/app/support" }
-  ];
-
-  const topBarMarkup = (
-    <TopBar
-      showNavigationToggle
-      userMenu={
-        <TopBar.UserMenu
-          name="Rodrigo"
-          detail="Biju & Cia."
-          initials="R"
-          open={userMenuActive}
-          onToggle={() => setUserMenuActive(!userMenuActive)}
-          actions={[
-            {
-              items: [
-                {
-                  content: "Sair",
-                  onAction: () => {
-                    // TODO: Integrar logout real com sessão/Shopify Auth
-                    alert("Logout!");
-                  }
-                }
-              ]
-            }
-          ]}
-        />
-      }
-    />
-  );
-
+export default function DashboardPage() {
   return (
-    // Não precisa do AppProvider aqui, já está no root.tsx!
-    <Frame
-      logo={logo}
-      navigation={
-        <Navigation location={location.pathname}>
-          {navItems.map((item) => (
-            <Navigation.Item
-              key={item.url}
-              url={item.url}
-              label={item.label}
-              icon={item.icon}
-              selected={item.selected}
-            />
-          ))}
-        </Navigation>
-      }
-      topBar={topBarMarkup}
-    >
-      {/* Renderiza a rota filha: dashboard, sync, etc */}
-      <Outlet />
-    </Frame>
+    <Page title="Dashboard Biju & Cia.">
+      <Layout>
+        <Layout.Section>
+          <Card sectioned title="Bem-vindo à Plataforma Biju & Cia.">
+            <TextContainer>
+              <p>
+                Gerencie a sincronização de produtos, lojas conectadas e todas as configurações do seu ecossistema de revenda num só lugar.
+              </p>
+              <div style={{ marginTop: 24, display: "flex", gap: 16 }}>
+                <Link to="/app/shops">
+                  <Button primary>Gerenciar Lojas</Button>
+                </Link>
+                <Link to="/app/sync">
+                  <Button>Sincronizar Catálogo</Button>
+                </Link>
+              </div>
+            </TextContainer>
+          </Card>
+        </Layout.Section>
+        <Layout.Section secondary>
+          <Banner title="Dica" status="info">
+            Personalize sua experiência acessando as <Link to="/app/settings">Configurações</Link> do sistema!
+          </Banner>
+        </Layout.Section>
+      </Layout>
+    </Page>
   );
 }

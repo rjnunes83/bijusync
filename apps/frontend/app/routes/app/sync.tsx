@@ -3,7 +3,6 @@ import { Page, Card, Banner, Button, Spinner, TextContainer } from "@shopify/pol
 import { useState } from "react";
 
 /**
- * SyncPage
  * Página de sincronização de catálogo [Enterprise Ready].
  * UX aprimorada, loading, tratamento de erros, extensível para logs/métricas futuras.
  */
@@ -20,7 +19,7 @@ export default function SyncPage() {
     try {
       const res = await fetch("/api/sync", { method: "POST" });
       if (!res.ok) throw new Error(await res.text());
-      setStatus("Sincronização concluída com sucesso!");
+      setStatus("Sincronização concluída!");
     } catch (err: any) {
       setError("Erro ao sincronizar: " + (err.message || err.toString()));
       setStatus(null);
@@ -56,7 +55,7 @@ export default function SyncPage() {
           </Button>
           {/* Status banner */}
           {!loading && status && !error && (
-            <Banner status="success" title="Sucesso">
+            <Banner status="success" title="Sincronização concluída!">
               {status}
             </Banner>
           )}

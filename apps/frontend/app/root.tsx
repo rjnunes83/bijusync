@@ -1,4 +1,5 @@
 // apps/frontend/app/root.tsx
+
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Outlet, useLoaderData, Link, Links } from "@remix-run/react";
@@ -7,14 +8,14 @@ import ptBR from "@shopify/polaris/locales/pt-BR.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 /**
- * Carrega CSS do Polaris (Shopify Design System)
+ * Enterprise: Carrega CSS global do Polaris.
  */
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: polarisStyles }
 ];
 
 /**
- * Loader global enterprise-ready.
+ * Enterprise: Loader global, injeta contexto seguro (shop, admin).
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -28,16 +29,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 /**
- * Root da aplicação (contexto global, tema, idioma e roteamento).
+ * Enterprise Root da app:
+ * - Provider Polaris global
+ * - Fallback visual amigável
+ * - HeaderMenu isolado para fácil refatoração futura
  */
 export default function AppRoot() {
   const { shop, isAdmin, mainShopDomain } = useLoaderData<typeof loader>();
 
-  // Fallback visual enterprise com Banner Polaris
+  // Fallback enterprise: orientação clara se faltar parâmetro shop
   if (!shop) {
     return (
       <>
-        <Links /> {/* Garante o carregamento do CSS Polaris */}
+        <Links />
         <Page>
           <div style={{ maxWidth: 560, margin: "60px auto" }}>
             <Banner
@@ -57,6 +61,7 @@ export default function AppRoot() {
     <AppProvider i18n={ptBR}>
       <Frame>
         <HeaderMenu isAdmin={isAdmin} />
+        {/* O Outlet propaga o contexto global para todas as rotas filhas */}
         <Outlet context={{ shop, isAdmin, mainShopDomain }} />
       </Frame>
     </AppProvider>
@@ -64,7 +69,7 @@ export default function AppRoot() {
 }
 
 /**
- * Menu superior enterprise, fácil de migrar para Navigation lateral.
+ * Enterprise HeaderMenu (pode migrar para Sidebar facilmente)
  */
 function HeaderMenu({ isAdmin }: { isAdmin: boolean }) {
   return (
@@ -73,16 +78,16 @@ function HeaderMenu({ isAdmin }: { isAdmin: boolean }) {
       role="navigation"
       aria-label="Menu principal"
     >
-      <Link style={navStyle} to="/app/catalog">Catálogo</Link>
-      {isAdmin && <Link style={navStyle} to="/app/shops">Lojas Conectadas</Link>}
+      <Link style={navStyle} to="/app">Dashboard</Link>
       <Link style={navStyle} to="/app/sync">Sincronizar</Link>
+      {isAdmin && <Link style={navStyle} to="/app/shops">Lojas Conectadas</Link>}
       <Link style={navStyle} to="/app/settings">Configurações</Link>
       <Link style={navStyle} to="/app/support">Suporte</Link>
     </nav>
   );
 }
 
-// --- Enterprise styles isolados ---
+// --- Enterprise styles isolados para fácil manutenção ---
 const navBarStyle = {
   display: "flex",
   gap: 32,

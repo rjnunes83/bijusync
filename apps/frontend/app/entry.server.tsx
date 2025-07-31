@@ -1,7 +1,6 @@
 /**
- * Server entry point for handling incoming requests and streaming React server-side rendered content.
- * Utilizes React 18's streaming SSR capabilities with Remix framework integration.
- * Handles bot detection for appropriate streaming strategy and manages response headers.
+ * Server entry for streaming SSR with React 18 + Remix + Shopify.
+ * Enterprise: Comentários JSDoc, logs limpos, tratamento seguro de erros.
  */
 
 import { PassThrough } from "stream";
@@ -14,20 +13,24 @@ import {
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
 
-/**
- * Timeout duration in milliseconds for aborting the React SSR stream if it takes too long.
- */
-export const streamTimeout: number = 5000;
+/** Tempo máximo de streaming (ms) para abortar SSR */
+const STREAM_TIMEOUT_MS = 5000;
 
 /**
- * Handles incoming HTTP requests by rendering the React application to a stream,
- * setting appropriate headers, and returning a streaming Response.
- *
- * @param request - The incoming HTTP request object.
- * @param responseStatusCode - The HTTP status code to use for the response.
- * @param responseHeaders - The Headers object to populate response headers.
- * @param remixContext - The Remix entry context containing route data and other info.
- * @returns A Promise resolving to a Response object streaming the rendered React app.
+ * Decide o modo de streaming baseado no user-agent (bot vs browser).
+ */
+function getStreamingCallbackName(request: Request): "onAllReady" | "onShellReady" {
+  const userAgent = request.headers.get("user-agent") || "";
+  return isbot(userAgent) ? "onAllReady" : "onShellReady";
+}
+
+/**
+ * Entry point SSR: gera a resposta HTML do app.
+ * @param request HTTP Request recebido
+ * @param responseStatusCode Código de status da resposta
+ * @param responseHeaders Headers da resposta
+ * @param remixContext Contexto Remix (rotas, loaders, etc)
+ * @returns Response HTML streaming SSR
  */
 export default async function handleRequest(
   request: Request,
@@ -35,62 +38,73 @@ export default async function handleRequest(
   responseHeaders: Headers,
   remixContext: EntryContext
 ): Promise<Response> {
-  // Add any necessary Shopify-specific headers to the response
+  // Adiciona headers enterprise (Shopify, CDN, observabilidade, etc)
   addDocumentResponseHeaders(request, responseHeaders);
+  responseHeaders.set("X-Powered-By", "BijuSync-SSR/Remix");
 
-  // Detect if the user agent is a bot to decide streaming strategy
-  const userAgent: string | null = request.headers.get("user-agent");
-  const callbackName: "onAllReady" | "onShellReady" = isbot(userAgent ?? '')
-    ? "onAllReady"
-    : "onShellReady";
+  const callbackName = getStreamingCallbackName(request);
 
   return new Promise((resolve, reject) => {
-    // Start rendering the React application to a pipeable stream
+    let didError = false;
+
     const { pipe, abort } = renderToPipeableStream(
-      <RemixServer
-        context={remixContext}
-        url={request.url}
-      />,
+      <RemixServer context={remixContext} url={request.url} />,
       {
-        // Triggered when the shell or full content is ready depending on client type
+        // Bot: só responde quando tudo pronto | User: responde o shell e carrega o resto via stream
         [callbackName]: () => {
           const body = new PassThrough();
-          // Convert Node.js readable stream to a WHATWG ReadableStream for Response
           const stream = createReadableStreamFromReadable(body);
-
-          // Set content type header for HTML response
           responseHeaders.set("Content-Type", "text/html");
 
-          // Resolve the promise with a streaming Response
+          // Log enterprise só em dev
+          if (process.env.NODE_ENV === "development") {
+            console.log(`[SSR] Streaming response (${callbackName}) para: ${request.url}`);
+          }
+
           resolve(
             new Response(stream, {
               headers: responseHeaders,
-              status: responseStatusCode,
+              status: didError ? 500 : responseStatusCode,
             })
           );
-
-          // Start piping the React stream into the PassThrough stream
           pipe(body);
         },
-
-        // Called if there is an error before shell is ready
         onShellError(error: unknown) {
-          reject(error);
-        },
-
-        // Called on any error during streaming after shell is sent
-        onError(error: unknown) {
-          responseStatusCode = 500;
-          console.error(
-            "React SSR streaming error occurred during server-side rendering:",
-            error
+          // Retorna erro HTML amigável para navegador (ou monitoring)
+          reject(
+            new Response(
+              `<h1>Erro ao renderizar a aplicação</h1><pre>${escapeHtml(String(error))}</pre>`,
+              {
+                status: 500,
+                headers: { "Content-Type": "text/html" },
+              }
+            )
           );
+        },
+        onError(error: unknown) {
+          didError = true;
+          if (process.env.NODE_ENV === "development") {
+            console.error("[SSR] Erro durante streaming React:", error);
+          }
         },
       }
     );
+    setTimeout(abort, STREAM_TIMEOUT_MS + 1000);
+  });
+}
 
-    // Automatically abort React rendering if it takes longer than timeout + buffer
-    // Ensures server does not hang indefinitely on slow or stuck renders
-    setTimeout(abort, streamTimeout + 1000);
+/**
+ * Escapa HTML básico para mensagem de erro
+ */
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, function (m) {
+    switch (m) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#039;";
+      default: return m;
+    }
   });
 }
