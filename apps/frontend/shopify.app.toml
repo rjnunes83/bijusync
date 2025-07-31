@@ -3,7 +3,7 @@
 client_id = "2274538c7776404900c3d3ecbb22602b"
 name = "Biju & Cia. Connector"
 handle = "biju-cia-connector"
-application_url = "https://mandatory-fridge-dinner-licking.trycloudflare.com"
+application_url = "https://innovative-appliances-cio-mh.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,7 +26,7 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://mandatory-fridge-dinner-licking.trycloudflare.com/auth/callback", "https://mandatory-fridge-dinner-licking.trycloudflare.com/auth/shopify/callback", "https://mandatory-fridge-dinner-licking.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://innovative-appliances-cio-mh.trycloudflare.com/auth/callback", "https://innovative-appliances-cio-mh.trycloudflare.com/auth/shopify/callback", "https://innovative-appliances-cio-mh.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
