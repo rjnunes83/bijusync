@@ -1,3 +1,5 @@
+// backend/routes/shopifyAuth.js
+
 import express from 'express';
 import axios from 'axios';
 import dotenv from 'dotenv';
@@ -7,11 +9,16 @@ dotenv.config();
 
 const router = express.Router();
 
+/**
+ * GET /auth
+ * Inicia o fluxo de OAuth com a Shopify.
+ */
 router.get('/auth', (req, res) => {
   const shop = req.query.shop;
 
   if (!shop || !shop.endsWith('.myshopify.com')) {
-    return res.status(400).send('Parâmetro "shop" inválido ou ausente.');
+    console.warn('[shopifyAuth] Parâmetro "shop" inválido:', shop);
+    return res.status(400).json({ error: 'Parâmetro "shop" inválido ou ausente.' });
   }
 
   const redirectUri = `${process.env.SHOPIFY_APP_URL}/auth/callback`;
@@ -19,24 +26,30 @@ router.get('/auth', (req, res) => {
   const scopes = process.env.SHOPIFY_SCOPES || 'read_products,write_products';
 
   if (!clientId) {
-    console.error('❌ Variável de ambiente SHOPIFY_API_KEY não definida');
-    return res.status(500).send('Erro interno: API Key não configurada.');
+    console.error('[shopifyAuth] SHOPIFY_API_KEY não definida.');
+    return res.status(500).json({ error: 'Erro interno: API Key não configurada.' });
   }
 
-  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}`;
+  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-  console.log('🔗 Redirecionando para instalação:', installUrl);
+  console.info('[shopifyAuth] Redirecionando usuário para instalação da app:', installUrl);
   res.redirect(installUrl);
 });
 
+/**
+ * GET /auth/callback
+ * Finaliza OAuth: troca o code pelo access token e salva no banco.
+ */
 router.get('/auth/callback', async (req, res) => {
   const { shop, code } = req.query;
 
   if (!shop || !code || !shop.endsWith('.myshopify.com')) {
-    return res.status(400).send('Parâmetros inválidos ou ausentes.');
+    console.warn('[shopifyAuth] Callback com parâmetros inválidos:', req.query);
+    return res.status(400).json({ error: 'Parâmetros inválidos ou ausentes.' });
   }
 
   try {
+    // Troca code por access token
     const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
       client_id: process.env.SHOPIFY_API_KEY,
       client_secret: process.env.SHOPIFY_API_SECRET,
@@ -46,20 +59,24 @@ router.get('/auth/callback', async (req, res) => {
     const accessToken = tokenResponse.data.access_token;
     const scope = tokenResponse.data.scope;
 
-    console.log('✅ Access Token recebido com sucesso!');
-    console.log('🔐 Token:', accessToken);
-    console.log('🔍 Scope:', scope);
-
+    // Salva ou atualiza loja no banco
     await saveOrUpdateShop({
       shopifyDomain: shop,
       accessToken: accessToken,
       scope: scope
     });
 
-    res.send(`✅ Autenticação concluída com sucesso!<br><br>🔐 Access Token: <code>${accessToken}</code>`);
+    console.info(`[shopifyAuth] Loja "${shop}" autenticada com sucesso. Token salvo no banco.`);
+    
+    // Redireciona para app após sucesso
+    return res.redirect(`${process.env.SHOPIFY_APP_URL}/auth/success?shop=${encodeURIComponent(shop)}`);
+
+    // Se preferir, pode mostrar um HTML customizado informando sucesso, sem expor o token.
+    // res.send('✅ Sua loja foi conectada com sucesso! Você já pode fechar esta janela.');
+
   } catch (error) {
-    console.error('❌ Erro ao trocar o code por token:', error?.response?.data || error.message);
-    res.status(500).send('Erro ao concluir autenticação');
+    console.error('[shopifyAuth] Erro ao trocar code por token:', error?.response?.data || error.message);
+    return res.status(500).json({ error: 'Erro ao concluir autenticação com a Shopify.' });
   }
 });
 

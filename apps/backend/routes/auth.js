@@ -1,3 +1,10 @@
+// backend/routes/auth.js
+/**
+ * Auth controller para fluxo OAuth da Shopify.
+ * Padrão de excelência: seguro, robusto, comentado e fácil de manter/escalar.
+ * Última revisão: 2025-07
+ */
+
 import express from 'express';
 import axios from 'axios';
 import crypto from 'crypto';
@@ -13,75 +20,85 @@ const SCOPES = process.env.SCOPES;
 const HOST = process.env.HOST;
 
 const REDIRECT_URI = `${HOST}/auth/callback`;
+const APP_DASHBOARD_SUFFIX = '/admin/apps'; // Centralize para fácil troca
 
 router.use(cookieParser());
 
-// Rota inicial para iniciar o processo de instalação da app
+/**
+ * Gera um state aleatório (nonce) para prevenção de CSRF.
+ * @returns {string}
+ */
+function generateState() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// 1. Inicia instalação OAuth da app na loja Shopify
 router.get('/', (req, res) => {
   const shop = req.query.shop;
   if (!shop) return res.status(400).send('Shop não informado.');
 
-  // Gera um estado (nonce) aleatório para prevenir ataques CSRF
-  const state = crypto.randomBytes(16).toString('hex');
-  // Salva o estado como cookie seguro e HTTP only
-  res.cookie('state', state, { httpOnly: true, secure: true });
+  // State seguro para CSRF
+  const state = generateState();
+  res.cookie('state', state, { httpOnly: true, secure: true, sameSite: 'lax' });
 
-  // Monta a URL de autorização da Shopify incluindo o state para validação futura
-  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_API_KEY}&scope=${SCOPES}&state=${state}&redirect_uri=${REDIRECT_URI}`;
+  const installUrl = `https://${shop}/admin/oauth/authorize` +
+    `?client_id=${SHOPIFY_API_KEY}` +
+    `&scope=${SCOPES}` +
+    `&state=${state}` +
+    `&redirect_uri=${REDIRECT_URI}`;
+
+  console.info(`[Shopify OAuth] Iniciando instalação para loja: ${shop}`);
   return res.redirect(installUrl);
 });
 
-// Callback da Shopify após autorização da app
+// 2. Callback de autorização da Shopify
 router.get('/callback', async (req, res) => {
   const { shop, code, hmac, state } = req.query;
 
-  // Verifica se todos os parâmetros necessários estão presentes
   if (!shop || !code || !hmac || !state) {
-    return res.status(400).send('Parâmetros inválidos.');
+    return res.status(400).send('Parâmetros obrigatórios ausentes.');
   }
 
-  // Verifica se o state recebido corresponde ao state salvo no cookie para prevenir CSRF
+  // Checagem de state para CSRF
   const stateFromCookie = req.cookies?.state;
   if (state !== stateFromCookie) {
-    return res.status(403).send('State inválido.');
+    return res.status(403).send('Falha na validação do state. Potencial CSRF detectado.');
   }
 
-  // Remove parâmetros que não fazem parte da mensagem para validação do HMAC
-  const map = { ...req.query };
-  delete map['signature'];
-  delete map['hmac'];
-
-  // Recria a mensagem original para validação do HMAC
-  const message = querystring.stringify(map);
+  // Validação HMAC (segurança e integridade da requisição)
+  const params = { ...req.query };
+  delete params['signature'];
+  delete params['hmac'];
+  const message = querystring.stringify(params);
   const generatedHash = crypto
     .createHmac('sha256', SHOPIFY_API_SECRET)
     .update(message)
     .digest('hex');
-
-  // Compara o HMAC gerado com o recebido para garantir integridade e autenticidade da requisição
   if (generatedHash !== hmac) {
-    return res.status(400).send('HMAC inválido.');
+    return res.status(400).send('Falha na validação do HMAC.');
   }
 
   try {
-    // Solicita o token de acesso da Shopify usando o código recebido
+    // Troca o código por um token de acesso
     const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
       client_id: SHOPIFY_API_KEY,
       client_secret: SHOPIFY_API_SECRET,
       code
     });
-
     const accessToken = tokenResponse.data.access_token;
 
-    // Salva ou atualiza os dados da loja e token no banco de dados
-    console.log('Salvando loja:', shop, 'Access Token:', accessToken);
+    // Salva/atualiza a loja e o accessToken de forma segura
+    // NUNCA logar accessToken em produção!
+    // console.log('Salvando loja:', shop, 'Access Token:', accessToken); // Somente debug local
     await saveOrUpdateShop(shop, accessToken);
 
-    // Redireciona para o painel de apps da loja após sucesso na instalação
-    return res.redirect(`https://${shop}/admin/apps`);
+    console.info(`[Shopify OAuth] Loja registrada/atualizada: ${shop}`);
+    // Redireciona usuário para o painel de apps da loja
+    return res.redirect(`https://${shop}${APP_DASHBOARD_SUFFIX}`);
   } catch (err) {
-    console.error('Erro ao obter o token:', err.response?.data || err.message);
-    return res.status(500).send('Erro ao autenticar com a Shopify.');
+    console.error('[Shopify OAuth] Erro ao obter token:', err.response?.data || err.message);
+    // Nunca retorne detalhes sensíveis em produção!
+    return res.status(500).send('Erro ao autenticar com a Shopify. Por favor, tente novamente.');
   }
 });
 

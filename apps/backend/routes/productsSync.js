@@ -1,22 +1,31 @@
+// backend/routes/productsSync.js
+
 import express from 'express';
 import * as shopService from '../services/shopService.js';
-import { getAndTransformAllProducts as getProductsFromMainStore, createProductInStore, updateProductInStore, updateVariantInStore } from '../services/shopify/shopifyService.js';
-import { updateProductStatusInStore } from '../services/shopify/shopifyService.js';
+import {
+  getAndTransformAllProducts as getProductsFromMainStore,
+  createProductInStore,
+  updateProductInStore,
+  updateVariantInStore,
+  updateProductStatusInStore,
+} from '../services/shopify/shopifyService.js';
 import sequelize from "../config/db.js";
 import Sequelize from "sequelize";
 
 const router = express.Router();
 
-// Endpoint para sincronizar produtos para uma revendedora específica
+/**
+ * POST /products/sync
+ * Sincroniza todos os produtos da loja-mãe para a revendedora informada.
+ * Body: { shopifyDomain: string }
+ */
 router.post("/sync", async (req, res) => {
   const { shopifyDomain } = req.body;
-
   if (!shopifyDomain) {
     return res.status(400).json({ error: "Domínio da loja não fornecido." });
   }
-
   try {
-    console.log("🔍 Buscando loja com domínio:", shopifyDomain);
+    // Busca a loja
     const lojas = await sequelize.query(
       "SELECT * FROM shop WHERE shopify_domain = $1",
       {
@@ -24,54 +33,52 @@ router.post("/sync", async (req, res) => {
         type: Sequelize.QueryTypes.SELECT,
       }
     );
-
     if (!lojas.length) {
       return res.status(404).json({ error: "Loja revendedora não encontrada." });
     }
-
     const loja = lojas[0];
-    console.log("✅ Loja encontrada:", loja);
-
-    // Lógica de sincronização reativada
-    const produtosLojaMae = await getProductsFromMainStore();
     const revendedoraToken = loja.access_token;
     const markupPercentage = loja.markupPercentage || 0;
 
-    let totalCriado = 0;
+    // Busca os produtos da loja-mãe (TODO: paginação real se >250 produtos)
+    const produtosLojaMae = await getProductsFromMainStore();
+
+    let totalCriado = 0, totalFalhou = 0;
     for (const produto of produtosLojaMae) {
       try {
         await createProductInStore(shopifyDomain, revendedoraToken, produto, markupPercentage);
         totalCriado++;
       } catch (error) {
-        console.error(`Erro ao criar produto "${produto.title}":`, error.message);
+        console.error(`[productsSync] Erro ao criar produto "${produto.title}":`, error.message);
+        totalFalhou++;
+        // TODO: Armazenar falhas em batch para retry automático
       }
     }
-
-    console.log(`✅ Produtos sincronizados: ${totalCriado}`);
-
-    res.status(200).json({ success: true, message: "Sincronização iniciada com sucesso." });
-
+    console.info(`[productsSync] Loja ${shopifyDomain}: Produtos sincronizados: ${totalCriado}, falhas: ${totalFalhou}`);
+    res.status(200).json({ success: true, message: "Sincronização iniciada com sucesso.", criados: totalCriado, falhas: totalFalhou });
   } catch (error) {
-    console.error("Erro ao buscar loja por domínio:", error);
+    console.error("[productsSync] Erro ao buscar loja por domínio:", error);
     res.status(500).json({ error: "Erro interno ao buscar loja." });
   }
 });
 
-// Endpoint para atualizar produtos existentes
+/**
+ * PATCH /products/update
+ * Atualiza produtos existentes na revendedora, baseado na loja-mãe.
+ * Body: { shopifyDomain: string }
+ */
 router.patch('/update', async (req, res) => {
   const { shopifyDomain } = req.body;
-
   if (!shopifyDomain) return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
 
   try {
     const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
-    const revendedoraToken = shop.accessToken;
+    const revendedoraToken = shop.access_token;
     const produtosLojaMae = await getProductsFromMainStore();
 
     let totalAtualizado = 0, totalIgnorado = 0, totalFalhou = 0;
-
     for (const produtoMae of produtosLojaMae) {
       try {
         const skusMae = produtoMae?.variants?.map(v => v.sku).filter(Boolean);
@@ -80,6 +87,7 @@ router.patch('/update', async (req, res) => {
           continue;
         }
 
+        // Paginação real recomendada aqui!
         const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?fields=id,title,variants`, {
           method: 'GET',
           headers: {
@@ -87,83 +95,52 @@ router.patch('/update', async (req, res) => {
             'Content-Type': 'application/json'
           }
         });
-
         const data = await response.json();
         const produtoExistente = data.products?.find(p =>
           p.variants?.some(v => skusMae.includes(v.sku?.trim()))
         );
-
         if (!produtoExistente) {
           totalIgnorado++;
           continue;
         }
 
         const markupPercentage = shop.markupPercentage || 0;
-
         await updateProductInStore(shopifyDomain, revendedoraToken, produtoExistente.id, produtoMae);
         for (const variant of produtoMae.variants) {
           await updateVariantInStore(shopifyDomain, revendedoraToken, produtoExistente.id, variant, markupPercentage);
         }
-
-        /*
-        const variantsAtualizadas = produtoMae.variants.map(variant => {
-          const precoBase = parseFloat(variant.price || 0);
-          const precoFinal = (precoBase * (1 + markupPercentage / 100)).toFixed(2);
-          return { ...variant, price: precoFinal };
-        });
-
-        const updatePayload = {
-          product: {
-            id: produtoExistente.id,
-            title: produtoMae.title,
-            body_html: produtoMae.body_html,
-            vendor: produtoMae.vendor,
-            product_type: produtoMae.product_type,
-            tags: produtoMae.tags,
-            images: produtoMae.images,
-            variants: variantsAtualizadas,
-            status: produtoMae.status
-          }
-        };
-
-        await fetch(`https://${shopifyDomain}/admin/api/2024-04/products/${produtoExistente.id}.json`, {
-          method: 'PUT',
-          headers: {
-            'X-Shopify-Access-Token': revendedoraToken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(updatePayload)
-        });
-        */
-
         totalAtualizado++;
       } catch (error) {
-        console.error(`Erro em "${produtoMae.title}": ${error.message}`);
+        console.error(`[productsSync] Erro ao atualizar "${produtoMae.title}": ${error.message}`);
         totalFalhou++;
       }
     }
 
     res.status(200).json({ message: 'Atualização concluída.', atualizados: totalAtualizado, ignorados: totalIgnorado, falhas: totalFalhou });
   } catch (error) {
-    console.error('Erro geral na atualização:', error);
+    console.error('[productsSync] Erro geral na atualização:', error);
     res.status(500).json({ error: 'Erro interno.' });
   }
 });
 
-// Endpoint para deletar produtos ausentes na loja-mãe
+/**
+ * DELETE /products/delete
+ * Remove da revendedora os produtos ausentes na loja-mãe.
+ * Body: { shopifyDomain: string }
+ */
 router.delete('/delete', async (req, res) => {
   const { shopifyDomain } = req.body;
-
   if (!shopifyDomain) return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
 
   try {
     const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
-    const revendedoraToken = shop.accessToken;
+    const revendedoraToken = shop.access_token;
     const produtosMae = await getProductsFromMainStore();
     const skusMae = produtosMae.flatMap(p => p.variants?.map(v => v.sku)).filter(Boolean);
 
+    // TODO: Paginação real para >250 produtos!
     const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?limit=250`, {
       method: 'GET',
       headers: {
@@ -171,7 +148,6 @@ router.delete('/delete', async (req, res) => {
         'Content-Type': 'application/json'
       }
     });
-
     const data = await response.json();
     const produtosParaDeletar = data.products.filter(p => {
       const skusProduto = p.variants?.map(v => v.sku).filter(Boolean) || [];
@@ -179,7 +155,6 @@ router.delete('/delete', async (req, res) => {
     });
 
     let deletados = 0, falhas = 0;
-
     for (const produto of produtosParaDeletar) {
       try {
         await fetch(`https://${shopifyDomain}/admin/api/2024-04/products/${produto.id}.json`, {
@@ -191,31 +166,35 @@ router.delete('/delete', async (req, res) => {
         });
         deletados++;
       } catch (error) {
-        console.error(`Erro ao deletar produto ID ${produto.id}:`, error.message);
+        console.error(`[productsSync] Erro ao deletar produto ID ${produto.id}:`, error.message);
         falhas++;
       }
     }
 
     res.status(200).json({ message: 'Deleção concluída.', deletados, falhas });
   } catch (error) {
-    console.error('Erro na deleção:', error);
+    console.error('[productsSync] Erro na deleção:', error);
     res.status(500).json({ error: 'Erro interno.' });
   }
 });
 
-// Endpoint para sincronizar status dos produtos com base na loja-mãe
+/**
+ * PATCH /products/sync-status
+ * Sincroniza status dos produtos (ex: ativo/inativo) da loja-mãe para revendedora.
+ * Body: { shopifyDomain: string }
+ */
 router.patch('/sync-status', async (req, res) => {
   const { shopifyDomain } = req.body;
-
   if (!shopifyDomain) return res.status(400).json({ error: 'Parâmetro "shopifyDomain" é obrigatório.' });
 
   try {
     const shop = await shopService.findShopByDomain(shopifyDomain);
     if (!shop) return res.status(404).json({ error: 'Loja revendedora não encontrada.' });
 
-    const revendedoraToken = shop.accessToken;
+    const revendedoraToken = shop.access_token;
     const produtosMae = await getProductsFromMainStore();
 
+    // TODO: Paginação real!
     const response = await fetch(`https://${shopifyDomain}/admin/api/2024-04/products.json?limit=250&fields=id,title,variants,status`, {
       method: 'GET',
       headers: {
@@ -230,13 +209,10 @@ router.patch('/sync-status', async (req, res) => {
     for (const produtoMae of produtosMae) {
       const skuMae = produtoMae?.variants?.[0]?.sku?.trim();
       const statusMae = produtoMae.status;
-
       if (!skuMae || !statusMae) continue;
-
       const produtoCorrespondente = produtosRevendedora.find(p =>
         p.variants?.some(v => v.sku?.trim() === skuMae)
       );
-
       if (!produtoCorrespondente) continue;
 
       if (produtoCorrespondente.status !== statusMae) {
@@ -247,7 +223,7 @@ router.patch('/sync-status', async (req, res) => {
 
     res.status(200).json({ message: 'Status sincronizado com sucesso.', atualizados });
   } catch (error) {
-    console.error('Erro na sincronização de status:', error);
+    console.error('[productsSync] Erro na sincronização de status:', error);
     res.status(500).json({ error: 'Erro interno.' });
   }
 });
