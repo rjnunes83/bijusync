@@ -171,6 +171,28 @@ app.get('/api/shops', async (req, res) => {
   }
 });
 
+// Página inicial básica para a Shopify abrir o app com sucesso
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Biju & Cia. Connector</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #fff; color: #222; padding: 32px; }
+          h1 { color: #a16ae8; }
+          .powered { margin-top: 32px; color: #aaa; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <h1>Biju & Cia. Connector 🚀</h1>
+        <p>Seu app está instalado e funcionando!<br>
+        Prossiga para configurar ou evoluir seu painel de controle.</p>
+        <div class="powered">Powered by Rodrigo | ${new Date().toLocaleString()}</div>
+      </body>
+    </html>
+  `);
+});
+
 // Middleware global de tratamento de erro (sempre último!)
 app.use((err, req, res, next) => {
   console.error('❌ ERRO NÃO CAPTURADO:', err);
