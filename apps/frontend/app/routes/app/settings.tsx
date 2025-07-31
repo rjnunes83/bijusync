@@ -1,8 +1,12 @@
-import { Page, Card, Button, Layout, TextContainer } from "@shopify/polaris";
+import { Page, Card, Button, Layout, TextContainer, Banner } from "@shopify/polaris";
 
 export default function SettingsPage() {
   return (
-    <Page title="Configurações">
+    <Page title="Configurações" subtitle="Personalize todos os aspectos da sua plataforma Biju & Cia.">
+      {/* Banner global informativo */}
+      <Banner status="info" title="Em breve!">
+        Em breve, novas opções de configuração estarão disponíveis aqui para você personalizar ainda mais sua experiência.
+      </Banner>
       <Layout>
         {/* Sincronização */}
         <Layout.Section>
@@ -13,13 +17,14 @@ export default function SettingsPage() {
               content: "Configurar",
               disabled: true,
               onAction: () => {},
+              accessibilityLabel: "Configuração em breve disponível",
             }}
           >
             <TextContainer>
               <p>
-                Gerencie as configurações de sincronização dos seus dados e
-                integrações automáticas.
+                Gerencie as configurações de sincronização dos seus dados e integrações automáticas.
               </p>
+              <small style={{ color: "#888" }}>Funcionalidade em breve.</small>
             </TextContainer>
           </Card>
         </Layout.Section>
@@ -33,13 +38,14 @@ export default function SettingsPage() {
               content: "Configurar",
               disabled: true,
               onAction: () => {},
+              accessibilityLabel: "Configuração em breve disponível",
             }}
           >
             <TextContainer>
               <p>
-                Controle o acesso, permissões e gerenciamento de usuários da
-                aplicação.
+                Controle o acesso, permissões e gerenciamento de usuários da aplicação.
               </p>
+              <small style={{ color: "#888" }}>Funcionalidade em breve.</small>
             </TextContainer>
           </Card>
         </Layout.Section>
@@ -53,13 +59,14 @@ export default function SettingsPage() {
               content: "Configurar",
               disabled: true,
               onAction: () => {},
+              accessibilityLabel: "Configuração em breve disponível",
             }}
           >
             <TextContainer>
               <p>
-                Configure chaves de API, webhooks e integrações com serviços
-                externos.
+                Configure chaves de API, webhooks e integrações com serviços externos.
               </p>
+              <small style={{ color: "#888" }}>Funcionalidade em breve.</small>
             </TextContainer>
           </Card>
         </Layout.Section>
@@ -73,13 +80,14 @@ export default function SettingsPage() {
               content: "Configurar",
               disabled: true,
               onAction: () => {},
+              accessibilityLabel: "Configuração em breve disponível",
             }}
           >
             <TextContainer>
               <p>
-                Ajuste temas, cores e outros aspectos visuais para personalizar
-                sua experiência.
+                Ajuste temas, cores e outros aspectos visuais para personalizar sua experiência.
               </p>
+              <small style={{ color: "#888" }}>Funcionalidade em breve.</small>
             </TextContainer>
           </Card>
         </Layout.Section>
@@ -93,13 +101,14 @@ export default function SettingsPage() {
               content: "Configurar",
               disabled: true,
               onAction: () => {},
+              accessibilityLabel: "Configuração em breve disponível",
             }}
           >
             <TextContainer>
               <p>
-                Acesse opções de suporte, documentação e ajuda para sua
-                aplicação.
+                Acesse opções de suporte, documentação e ajuda para sua aplicação.
               </p>
+              <small style={{ color: "#888" }}>Funcionalidade em breve.</small>
             </TextContainer>
           </Card>
         </Layout.Section>

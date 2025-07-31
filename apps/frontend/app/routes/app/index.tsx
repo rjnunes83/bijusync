@@ -1,73 +1,42 @@
 // apps/frontend/app/routes/app/index.tsx
 import { Outlet, useLocation } from "@remix-run/react";
 import {
-  AppProvider,
   Frame,
   Navigation,
   TopBar
 } from "@shopify/polaris";
 import { useState } from "react";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-
-// [Enterprise] Export para Remix coletar o CSS Polaris na rota (caso não esteja global)
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 /**
- * Logo da marca - pronto para ser customizado
+ * Enterprise: Configuração do logo (pode evoluir para dinâmico).
  */
 const logo = {
   width: 124,
-  topBarSource:
-    "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
+  topBarSource: "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
   url: "/app",
   accessibilityLabel: "Biju & Cia. Connector"
 };
 
 /**
- * Enterprise Dashboard Layout
- * - Sidebar com Navigation Polaris (ícones por string!)
- * - TopBar com user menu
+ * Enterprise Layout da dashboard:
+ * - Sidebar Navigation Polaris (ícones por string!)
+ * - TopBar com menu do usuário (futuro multiuser)
  * - Outlet para render das rotas filhas
+ * - Não importa AppProvider aqui, pois já vem do root!
  */
 export default function AppLayout() {
   const location = useLocation();
   const [userMenuActive, setUserMenuActive] = useState(false);
 
-  // Definição centralizada do menu, pronto para controle de permissões/scopes
+  // Menu lateral enterprise, pronto para expansão por roles/scopes
   const navItems = [
-    {
-      label: "Dashboard",
-      icon: "HomeMajor",
-      url: "/app",
-      selected: location.pathname === "/app"
-    },
-    {
-      label: "Sincronizar Catálogo",
-      icon: "ImportMajor",
-      url: "/app/sync",
-      selected: location.pathname === "/app/sync"
-    },
-    {
-      label: "Lojas",
-      icon: "OrdersMajor",
-      url: "/app/shops",
-      selected: location.pathname === "/app/shops"
-    },
-    {
-      label: "Configurações",
-      icon: "SettingsMajor",
-      url: "/app/settings",
-      selected: location.pathname === "/app/settings"
-    },
-    {
-      label: "Suporte",
-      icon: "QuestionMarkMajor",
-      url: "/app/support",
-      selected: location.pathname === "/app/support"
-    }
+    { label: "Dashboard",           icon: "HomeMajor",        url: "/app",         selected: location.pathname === "/app" },
+    { label: "Sincronizar Catálogo",icon: "ImportMajor",      url: "/app/sync",    selected: location.pathname === "/app/sync" },
+    { label: "Lojas",               icon: "OrdersMajor",      url: "/app/shops",   selected: location.pathname === "/app/shops" },
+    { label: "Configurações",       icon: "SettingsMajor",    url: "/app/settings",selected: location.pathname === "/app/settings" },
+    { label: "Suporte",             icon: "QuestionMarkMajor",url: "/app/support", selected: location.pathname === "/app/support" }
   ];
 
-  // TopBar customizável para multiuser/app future
   const topBarMarkup = (
     <TopBar
       showNavigationToggle
@@ -84,7 +53,7 @@ export default function AppLayout() {
                 {
                   content: "Sair",
                   onAction: () => {
-                    // Aqui pode evoluir para função real de logout
+                    // TODO: Integrar logout real com sessão/Shopify Auth
                     alert("Logout!");
                   }
                 }
@@ -97,29 +66,26 @@ export default function AppLayout() {
   );
 
   return (
-    <AppProvider
-      i18n={{}} // Pronto para multilíngue depois (ex: ptBR)
+    // Não precisa do AppProvider aqui, já está no root.tsx!
+    <Frame
       logo={logo}
+      navigation={
+        <Navigation location={location.pathname}>
+          {navItems.map((item) => (
+            <Navigation.Item
+              key={item.url}
+              url={item.url}
+              label={item.label}
+              icon={item.icon}
+              selected={item.selected}
+            />
+          ))}
+        </Navigation>
+      }
+      topBar={topBarMarkup}
     >
-      <Frame
-        navigation={
-          <Navigation location={location.pathname}>
-            {navItems.map((item) => (
-              <Navigation.Item
-                key={item.url}
-                url={item.url}
-                label={item.label}
-                icon={item.icon}
-                selected={item.selected}
-              />
-            ))}
-          </Navigation>
-        }
-        topBar={topBarMarkup}
-      >
-        {/* Conteúdo da rota filha (dashboard, sync, etc) */}
-        <Outlet />
-      </Frame>
-    </AppProvider>
+      {/* Renderiza a rota filha: dashboard, sync, etc */}
+      <Outlet />
+    </Frame>
   );
 }

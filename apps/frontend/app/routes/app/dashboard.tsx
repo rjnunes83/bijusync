@@ -4,7 +4,7 @@ import { Link } from "@remix-run/react";
 
 /**
  * DashboardPage
- * Visão geral para o admin ou revendedora (modular)
+ * Visão geral do admin ou revendedora (modular, enterprise-ready)
  */
 export default function DashboardPage() {
   return (
@@ -14,17 +14,17 @@ export default function DashboardPage() {
       fullWidth
     >
       <Layout>
+        {/* Seção principal com CTA */}
         <Layout.Section>
           <Card sectioned title="Bem-vindo à Plataforma Biju & Cia.">
             <TextContainer>
               <p>
                 Gerencie a <b>sincronização de produtos</b>, <b>lojas conectadas</b> e todas as <b>configurações</b> do seu ecossistema de revenda em um só lugar.
               </p>
-              <div style={{ marginTop: 16 }}>
+              <div style={{ marginTop: 24, display: "flex", gap: 16 }}>
                 <Link to="/app/shops">
                   <Button primary>Gerenciar Lojas</Button>
                 </Link>
-                <span style={{ margin: "0 8px" }} />
                 <Link to="/app/sync">
                   <Button>Sincronizar Catálogo</Button>
                 </Link>
@@ -32,16 +32,22 @@ export default function DashboardPage() {
             </TextContainer>
           </Card>
         </Layout.Section>
+
+        {/* Sidebar com status e suporte */}
         <Layout.Section secondary>
           <Card title="Status do Sistema" sectioned>
             <Banner title="Dica rápida!" status="info">
               Acesse as <Link to="/app/settings">Configurações</Link> para personalizar sua experiência.
             </Banner>
-            {/* [Enterprise] Espaço para futuras métricas, alertas ou status de sincronismo */}
+            {/* [Enterprise] Espaço reservado para métricas, alertas ou status */}
           </Card>
           <Card title="Suporte rápido" sectioned>
             <p>
-              Dúvidas ou problemas? Fale com nosso suporte pelo e-mail <a href="mailto:suporte@bijuecia.com">suporte@bijuecia.com</a>
+              Dúvidas ou problemas? Fale com nosso suporte:
+              <br />
+              <a href="mailto:suporte@bijuecia.com" style={{ color: "#004C92", fontWeight: 500 }}>
+                suporte@bijuecia.com
+              </a>
             </p>
           </Card>
         </Layout.Section>

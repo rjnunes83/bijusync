@@ -1,16 +1,18 @@
-// /apps/frontend/app/routes/app/sync.tsx
+// apps/frontend/app/routes/app/sync.tsx
 import { Page, Card, Banner, Button, Spinner, TextContainer } from "@shopify/polaris";
 import { useState } from "react";
 
 /**
+ * SyncPage
  * Página de sincronização de catálogo [Enterprise Ready].
- * Inclui UX aprimorada, loading, tratamento de erros e extensibilidade.
+ * UX aprimorada, loading, tratamento de erros, extensível para logs/métricas futuras.
  */
 export default function SyncPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Handler de sincronização
   const handleSync = async () => {
     setLoading(true);
     setError(null);
@@ -28,7 +30,10 @@ export default function SyncPage() {
   };
 
   return (
-    <Page title="Sincronizar Catálogo" subtitle="Atualize instantaneamente os produtos nas lojas revendedoras.">
+    <Page
+      title="Sincronizar Catálogo"
+      subtitle="Atualize instantaneamente os produtos das lojas revendedoras."
+    >
       <Card sectioned>
         <TextContainer>
           <p>
@@ -36,12 +41,22 @@ export default function SyncPage() {
             Esse processo pode demorar alguns minutos dependendo do volume de produtos.
           </p>
         </TextContainer>
-        <div style={{ margin: "32px 0 0 0", display: "flex", gap: 24, alignItems: "center" }}>
-          <Button onClick={handleSync} primary disabled={loading}>
-            {loading ? <Spinner accessibilityLabel="Sincronizando..." size="small" /> : "Sincronizar Agora"}
+        <div style={{ marginTop: 32, display: "flex", gap: 24, alignItems: "center" }}>
+          <Button
+            onClick={handleSync}
+            primary
+            disabled={loading}
+            accessibilityLabel="Iniciar sincronização do catálogo"
+          >
+            {loading ? (
+              <Spinner accessibilityLabel="Sincronizando..." size="small" />
+            ) : (
+              "Sincronizar Agora"
+            )}
           </Button>
-          {status && !loading && (
-            <Banner status="success" title="Sincronização realizada!">
+          {/* Status banner */}
+          {!loading && status && !error && (
+            <Banner status="success" title="Sucesso">
               {status}
             </Banner>
           )}
