@@ -1,4 +1,4 @@
-// /apps/frontend/app/routes/app/index.tsx
+// apps/frontend/app/routes/app/index.tsx
 import { Outlet, useLocation } from "@remix-run/react";
 import {
   AppProvider,
@@ -9,28 +9,31 @@ import {
 import { useState } from "react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-// Importante: Polaris icons são strings na Navigation.Item! Não importa componentes aqui.
-// [Enterprise] Importar o CSS global do Polaris (coloque o export links se não estiver no root.tsx)
+// [Enterprise] Export para Remix coletar o CSS Polaris na rota (caso não esteja global)
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 /**
- * Config do logo (personalize depois)
+ * Logo da marca - pronto para ser customizado
  */
 const logo = {
   width: 124,
   topBarSource:
-    "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg", // Troque para sua logo se quiser
+    "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
   url: "/app",
   accessibilityLabel: "Biju & Cia. Connector"
 };
 
 /**
- * Dashboard layout padrão enterprise - Sidebar Polaris, TopBar Polaris, roteamento SSR
+ * Enterprise Dashboard Layout
+ * - Sidebar com Navigation Polaris (ícones por string!)
+ * - TopBar com user menu
+ * - Outlet para render das rotas filhas
  */
 export default function AppLayout() {
   const location = useLocation();
+  const [userMenuActive, setUserMenuActive] = useState(false);
 
-  // Menu lateral com ícones Polaris por string!
+  // Definição centralizada do menu, pronto para controle de permissões/scopes
   const navItems = [
     {
       label: "Dashboard",
@@ -64,9 +67,7 @@ export default function AppLayout() {
     }
   ];
 
-  // TopBar com menu do usuário
-  const [userMenuActive, setUserMenuActive] = useState(false);
-
+  // TopBar customizável para multiuser/app future
   const topBarMarkup = (
     <TopBar
       showNavigationToggle
@@ -79,7 +80,15 @@ export default function AppLayout() {
           onToggle={() => setUserMenuActive(!userMenuActive)}
           actions={[
             {
-              items: [{ content: "Sair", onAction: () => alert("Logout!") }]
+              items: [
+                {
+                  content: "Sair",
+                  onAction: () => {
+                    // Aqui pode evoluir para função real de logout
+                    alert("Logout!");
+                  }
+                }
+              ]
             }
           ]}
         />
@@ -108,7 +117,7 @@ export default function AppLayout() {
         }
         topBar={topBarMarkup}
       >
-        {/* Carrega a rota filha (dashboard, sync, etc) */}
+        {/* Conteúdo da rota filha (dashboard, sync, etc) */}
         <Outlet />
       </Frame>
     </AppProvider>
