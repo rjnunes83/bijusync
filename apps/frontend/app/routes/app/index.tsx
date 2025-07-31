@@ -1,13 +1,20 @@
 // /apps/frontend/app/routes/app/index.tsx
-import { Outlet, Link, useLocation } from "@remix-run/react";
+import { Outlet, useLocation } from "@remix-run/react";
 import {
   AppProvider,
   Frame,
   Navigation,
-  TopBar,
-  Page
+  TopBar
 } from "@shopify/polaris";
 import { useState } from "react";
+// Importação dos ícones Polaris
+import {
+  HomeMajor,
+  ImportMajor,
+  OrdersMajor,
+  SettingsMajor,
+  QuestionMarkMajor
+} from "@shopify/polaris-icons";
 
 // Exemplo de logo (pode personalizar)
 const logo = {
@@ -20,35 +27,35 @@ const logo = {
 
 export default function AppLayout() {
   const location = useLocation();
-  // Menu lateral, pode criar conforme seu fluxo
+  // Menu lateral
   const navItems = [
     {
       label: "Dashboard",
-      icon: "HomeMajor",
+      icon: HomeMajor,
       url: "/app",
       selected: location.pathname === "/app"
     },
     {
       label: "Sincronizar Catálogo",
-      icon: "ImportMajor",
+      icon: ImportMajor,
       url: "/app/sync",
       selected: location.pathname === "/app/sync"
     },
     {
       label: "Lojas",
-      icon: "OrdersMajor",
+      icon: OrdersMajor,
       url: "/app/shops",
       selected: location.pathname === "/app/shops"
     },
     {
       label: "Configurações",
-      icon: "SettingsMajor",
+      icon: SettingsMajor,
       url: "/app/settings",
       selected: location.pathname === "/app/settings"
     },
     {
       label: "Suporte",
-      icon: "QuestionMarkMajor",
+      icon: QuestionMarkMajor,
       url: "/app/support",
       selected: location.pathname === "/app/support"
     }
@@ -92,7 +99,6 @@ export default function AppLayout() {
                 label={item.label}
                 icon={item.icon}
                 selected={item.selected}
-                onClick={() => {}}
               />
             ))}
           </Navigation>
