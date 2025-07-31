@@ -7,20 +7,30 @@ import {
   TopBar
 } from "@shopify/polaris";
 import { useState } from "react";
+import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-// Exemplo de logo (pode personalizar)
+// Importante: Polaris icons são strings na Navigation.Item! Não importa componentes aqui.
+// [Enterprise] Importar o CSS global do Polaris (coloque o export links se não estiver no root.tsx)
+export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+
+/**
+ * Config do logo (personalize depois)
+ */
 const logo = {
   width: 124,
   topBarSource:
-    "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg", // Mude para sua marca se quiser
+    "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg", // Troque para sua logo se quiser
   url: "/app",
   accessibilityLabel: "Biju & Cia. Connector"
 };
 
+/**
+ * Dashboard layout padrão enterprise - Sidebar Polaris, TopBar Polaris, roteamento SSR
+ */
 export default function AppLayout() {
   const location = useLocation();
 
-  // Menu lateral com ícones como string!
+  // Menu lateral com ícones Polaris por string!
   const navItems = [
     {
       label: "Dashboard",
@@ -54,7 +64,7 @@ export default function AppLayout() {
     }
   ];
 
-  // TopBar padrão (pode personalizar)
+  // TopBar com menu do usuário
   const [userMenuActive, setUserMenuActive] = useState(false);
 
   const topBarMarkup = (
@@ -79,7 +89,7 @@ export default function AppLayout() {
 
   return (
     <AppProvider
-      i18n={{}} // Adapte depois se for multilíngue
+      i18n={{}} // Pronto para multilíngue depois (ex: ptBR)
       logo={logo}
     >
       <Frame
@@ -90,7 +100,7 @@ export default function AppLayout() {
                 key={item.url}
                 url={item.url}
                 label={item.label}
-                icon={item.icon} // agora string, não componente!
+                icon={item.icon}
                 selected={item.selected}
               />
             ))}
@@ -98,7 +108,7 @@ export default function AppLayout() {
         }
         topBar={topBarMarkup}
       >
-        {/* Aqui carrega o conteúdo da página selecionada */}
+        {/* Carrega a rota filha (dashboard, sync, etc) */}
         <Outlet />
       </Frame>
     </AppProvider>
