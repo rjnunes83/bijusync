@@ -1,13 +1,12 @@
 // apps/frontend/app/routes/app.tsx
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/react";
+import { Outlet, useRouteError, useLocation } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
-import { AppProvider } from "@shopify/shopify-app-remix/react";
-import ptBRTranslations from "@shopify/polaris/locales/pt-BR.json";
+import { AppProvider, Frame, Navigation, TopBar } from "@shopify/polaris";
+import ptBR from "@shopify/polaris/locales/pt-BR.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { admin } from "../shopify.server";
-import { Frame, Navigation, TopBar } from "@shopify/polaris";
 import { useState } from "react";
 
 // Polaris CSS
@@ -16,11 +15,10 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 // Loader para autenticação e variáveis
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await admin.authenticate.admin(request);
-  return json({ apiKey: process.env.SHOPIFY_API_KEY || "" });
+  return json({});
 };
 
-export default function AppLayout() {
-  const { apiKey } = useLoaderData<typeof loader>();
+export default function App() {
   const location = useLocation();
   const [userMenuActive, setUserMenuActive] = useState(false);
 
@@ -63,7 +61,7 @@ export default function AppLayout() {
   );
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey} i18n={ptBRTranslations}>
+    <AppProvider i18n={ptBR}>
       <Frame
         logo={{
           width: 124,
