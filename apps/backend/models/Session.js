@@ -77,4 +77,4 @@ const Session = sequelize.define('Session', {
   underscored: false,   // Shopify costuma usar camelCase
 });
 
-export default Session;
+export default Session; 
