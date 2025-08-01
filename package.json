@@ -14,19 +14,24 @@
   ],
   "scripts": {
     "install:all": "npm install --workspaces",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd apps/backend && npm run dev",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=apps/backend",
     "dev:frontend": "cd apps/frontend && npm run dev",
-    "start:backend": "cd apps/backend && npm start",
-    "start:frontend": "cd apps/frontend && npm start",
     "build": "npm run build --workspaces",
     "clean": "rimraf node_modules apps/*/node_modules",
-    "test": "npm run test --workspaces",
     "lint": "eslint . --ext .js,.ts,.tsx",
     "format": "prettier --write ."
   },
   "engines": {
     "node": ">=18.20.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.42.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.2.4",
+    "rimraf": "^5.0.10"
   },
   "lint-staged": {
     "*.{js,ts,tsx,json,css,md}": [
@@ -40,9 +45,5 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "husky": "^9.1.7"
   }
 }
