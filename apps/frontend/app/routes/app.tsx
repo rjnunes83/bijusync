@@ -4,7 +4,7 @@ import { json } from "@remix-run/node";
 import { Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
-import ptTranslations from "@shopify/polaris/locales/pt.json";
+import ptBRTranslations from "@shopify/polaris/locales/pt-BR.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { admin } from "../shopify.server";
 import { Frame, Navigation, TopBar } from "@shopify/polaris";
@@ -63,7 +63,7 @@ export default function AppLayout() {
   );
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey} i18n={ptTranslations}>
+    <AppProvider isEmbeddedApp apiKey={apiKey} i18n={ptBRTranslations}>
       <Frame
         logo={{
           width: 124,
