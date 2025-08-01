@@ -3,6 +3,7 @@
 import express from 'express';
 import Joi from 'joi';
 import Job from '../models/Job.js';
+import { verifyInternalApi } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ const shopDomainSchema = Joi.object({
  * POST /api/sync/all
  * Agenda um job para sincronizar TODOS os produtos para uma loja.
  */
-router.post('/all', validate(shopDomainSchema), async (req, res, next) => {
+router.post('/all', verifyInternalApi, validate(shopDomainSchema), async (req, res, next) => {
   try {
     const { shopifyDomain } = req.body;
     const job = await Job.create({
@@ -51,7 +52,7 @@ router.post('/all', validate(shopDomainSchema), async (req, res, next) => {
  * PATCH /api/sync/update
  * Agenda um job para ATUALIZAR os produtos de uma loja.
  */
-router.patch('/update', validate(shopDomainSchema), async (req, res, next) => {
+router.patch('/update', verifyInternalApi, validate(shopDomainSchema), async (req, res, next) => {
   try {
     const { shopifyDomain } = req.body;
     const job = await Job.create({
@@ -72,7 +73,7 @@ router.patch('/update', validate(shopDomainSchema), async (req, res, next) => {
  * DELETE /api/sync/cleanup
  * Agenda um job para LIMPAR produtos obsoletos de uma loja.
  */
-router.delete('/cleanup', validate(shopDomainSchema), async (req, res, next) => {
+router.delete('/cleanup', verifyInternalApi, validate(shopDomainSchema), async (req, res, next) => {
   try {
     const { shopifyDomain } = req.body;
     const job = await Job.create({
@@ -93,7 +94,7 @@ router.delete('/cleanup', validate(shopDomainSchema), async (req, res, next) => 
  * PATCH /api/sync/status
  * Agenda um job para SINCRONIZAR O STATUS dos produtos de uma loja.
  */
-router.patch('/status', validate(shopDomainSchema), async (req, res, next) => {
+router.patch('/status', verifyInternalApi, validate(shopDomainSchema), async (req, res, next) => {
   try {
     const { shopifyDomain } = req.body;
     const job = await Job.create({

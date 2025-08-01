@@ -1,41 +1,66 @@
 import { Op } from 'sequelize';
 import Job from '../models/Job.js';
 import * as shopifyService from '../services/shopify/shopifyService.js';
+import * as shopService from '../services/shopService.js';
 import sequelize from '../config/db.js';
 
 const MAX_ATTEMPTS = 3;
 const POLLING_INTERVAL_MS = 5000; // 5 segundos
 
-async function processSyncJob(job) {
-  const { shopifyDomain, accessToken } = job.data;
-  const mainShopDomain = process.env.SHOPIFY_MAIN_STORE;
+async function processJob(job) {
+  const { shopifyDomain } = job.data;
+  console.log(`[WORKER] Iniciando job ${job.id} (${job.type}) para: ${shopifyDomain} (Tentativa ${job.attempts}/${MAX_ATTEMPTS})`);
+
   const mainShopToken = process.env.SHOPIFY_ACCESS_TOKEN;
-  console.log(`[WORKER] Iniciando job ${job.id} (${job.type}) para loja: ${shopifyDomain || 'N/A'} (Tentativa ${job.attempts}/${MAX_ATTEMPTS})`);
+  const mainShopDomain = process.env.SHOPIFY_MAIN_STORE;
+
+  const resellerShop = await shopService.findShopByDomain(shopifyDomain);
+  if (!resellerShop) throw new Error(`Loja revendedora ${shopifyDomain} não encontrada.`);
+  const resellerToken = resellerShop.access_token;
+
+  // Busca os produtos de ambas as lojas UMA ÚNICA VEZ para máxima eficiência
+  const [mainProducts, resellerProducts] = await Promise.all([
+    shopifyService.getAllProductsFromShop(mainShopToken, mainShopDomain),
+    shopifyService.getAllProductsFromShop(resellerToken, shopifyDomain)
+  ]);
+
+  // Estruturas de dados otimizadas para comparação (O(1) lookup)
+  const mainSkus = new Set(mainProducts.flatMap(p => p.variants.map(v => v.sku).filter(Boolean)));
+  const resellerSkusMap = new Map();
+  resellerProducts.forEach(p => {
+      p.variants.forEach(v => {
+          if (v.sku) resellerSkusMap.set(v.sku, { productId: p.id, variantId: v.id });
+      });
+  });
 
   switch (job.type) {
     case 'sync-all-products-for-shop': {
-      const products = await shopifyService.getAllProductsFromShop(mainShopToken, mainShopDomain);
-      for (const product of products) {
-        await shopifyService.createProductOnShop(product, accessToken, shopifyDomain);
-        // TODO: Controle de rate limit opcional
+      for (const product of mainProducts) {
+        const productExists = product.variants.some(v => v.sku && resellerSkusMap.has(v.sku));
+        if (!productExists) {
+          await shopifyService.createProductInStore(product, resellerToken, shopifyDomain);
+        }
       }
       break;
     }
-    case 'update-products-for-shop': {
-      // TODO: lógica de atualização de produtos para a loja shopifyDomain
-      throw new Error('update-products-for-shop ainda não implementado');
-    }
+
     case 'cleanup-obsolete-products-for-shop': {
-      // TODO: lógica de deleção de produtos obsoletos para a loja shopifyDomain
-      throw new Error('cleanup-obsolete-products-for-shop ainda não implementado');
+      const productsToDelete = new Set();
+      for (const product of resellerProducts) {
+        const isObsolete = product.variants.every(v => !v.sku || !mainSkus.has(v.sku));
+        if (isObsolete) {
+          productsToDelete.add(product.id);
+        }
+      }
+      for (const productId of productsToDelete) {
+        await shopifyService.deleteProductFromStore(productId, resellerToken, shopifyDomain);
+      }
+      break;
     }
-    case 'sync-status-for-shop': {
-      // TODO: lógica de sincronização de status dos produtos
-      throw new Error('sync-status-for-shop ainda não implementado');
-    }
-    default: {
+
+    // Outros tipos de job (ex: 'update-products-for-shop', 'sync-status-for-shop') podem ser implementados depois...
+    default:
       throw new Error(`Tipo de job desconhecido: ${job.type}`);
-    }
   }
 }
 
@@ -67,7 +92,7 @@ async function runWorker() {
   }
   if (jobToRun) {
     try {
-      await processSyncJob(jobToRun);
+      await processJob(jobToRun);
       jobToRun.status = 'completed';
       jobToRun.processed_at = new Date();
       jobToRun.last_error = null;

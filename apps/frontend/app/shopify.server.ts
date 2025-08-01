@@ -1,19 +1,6 @@
-import "@shopify/shopify-app-remix/adapters/node";
-import {
-  ApiVersion,
-  AppDistribution,
-  shopifyApp,
-} from "@shopify/shopify-app-remix/server";
-import prisma from "./db.server";
-import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
-export const sessionStorage = new PrismaSessionStorage(prisma, {
-  sessionModel: "Session", // Case sensitive!
-  schema: "public",        // Adicione isso!
-});
+import { LATEST_API_VERSION } from "@shopify/shopify-api";
+import { shopifyApp } from "@shopify/shopify-app-remix/server";
+import { SequelizeSessionStorage } from "./services/sequelizeSessionStorage.server";
 
 // Checagem das principais variáveis de ambiente
 if (
@@ -26,16 +13,15 @@ if (
   );
 }
 
-// Instancia o app Shopify com configuração correta do Prisma Session Storage
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET,
-  apiVersion: ApiVersion.January25,
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiVersion: LATEST_API_VERSION,
   scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL,
+  appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
-  sessionStorage,
-  distribution: AppDistribution.AppStore,
+  sessionStorage: new SequelizeSessionStorage(),
+  distribution: "AppStore",
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
@@ -46,7 +32,7 @@ const shopify = shopifyApp({
 });
 
 export default shopify;
-export const apiVersion = ApiVersion.January25;
+export const admin = shopify.admin;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
