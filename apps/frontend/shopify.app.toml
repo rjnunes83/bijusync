@@ -3,12 +3,11 @@
 client_id = "2274538c7776404900c3d3ecbb22602b"
 name = "Biju & Cia. Connector"
 handle = "biju-cia-connector"
-application_url = "https://fwd-pencil-processes-pavilion.trycloudflare.com"
+application_url = "https://bijusync.onrender.com"
 embedded = true
 
 [build]
-include_config_on_deploy = true
-automatically_update_urls_on_dev = true
+command = "npm run build"
 
 [webhooks]
 api_version = "2025-07"
@@ -26,7 +25,7 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://fwd-pencil-processes-pavilion.trycloudflare.com/auth/callback", "https://fwd-pencil-processes-pavilion.trycloudflare.com/auth/shopify/callback", "https://fwd-pencil-processes-pavilion.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://devil-panel-likewise-wrist.trycloudflare.com/auth/callback", "https://devil-panel-likewise-wrist.trycloudflare.com/auth/shopify/callback", "https://devil-panel-likewise-wrist.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

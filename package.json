@@ -16,7 +16,7 @@
     "install:all": "npm install --workspaces",
     "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:backend": "npm run dev --workspace=apps/backend",
-    "dev:frontend": "cd apps/frontend && npm run dev",
+    "dev:frontend": "shopify app dev --path apps/frontend",
     "build": "npm run build --workspaces",
     "clean": "rimraf node_modules apps/*/node_modules",
     "lint": "eslint . --ext .js,.ts,.tsx",

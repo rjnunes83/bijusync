@@ -5,7 +5,7 @@ import * as shopService from '../services/shopService.js';
 import sequelize from '../config/db.js';
 
 const MAX_ATTEMPTS = 3;
-const POLLING_INTERVAL_MS = 5000;
+const POLLING_INTERVAL_MS = 5000; // 5 segundos
 
 /**
  * Processa um job, delegando para a função correta baseada no tipo.
@@ -23,81 +23,94 @@ async function processJob(job) {
   if (!resellerShop) throw new Error(`Loja revendedora ${shopifyDomain} não encontrada.`);
   const resellerToken = resellerShop.access_token;
 
-  // Para operações que precisam de ambas as listas, buscamos uma única vez.
-  if (['sync-all-products-for-shop', 'cleanup-obsolete-products-for-shop', 'update-products-for-shop'].includes(job.type)) {
-    
-    console.log(`[WORKER] Buscando catálogos da loja-mãe e de ${shopifyDomain}...`);
-    const [mainProducts, resellerProducts] = await Promise.all([
-      shopifyService.getAllProductsFromShop(mainShopToken, mainShopDomain),
-      shopifyService.getAllProductsFromShop(resellerToken, shopifyDomain)
-    ]);
-    console.log(`[WORKER] Catálogos obtidos: ${mainProducts.length} (mãe), ${resellerProducts.length} (revendedora).`);
+  // Busca os produtos de ambas as lojas UMA ÚNICA VEZ para máxima eficiência
+  console.log(`[WORKER] Buscando catálogos da loja-mãe e de ${shopifyDomain}...`);
+  const [mainProducts, resellerProducts] = await Promise.all([
+    shopifyService.getAllProductsFromShop(mainShopToken, mainShopDomain),
+    shopifyService.getAllProductsFromShop(resellerToken, shopifyDomain)
+  ]);
+  console.log(`[WORKER] Catálogos obtidos: ${mainProducts.length} (mãe), ${resellerProducts.length} (revendedora).`);
 
-    const mainSkus = new Set(mainProducts.flatMap(p => p.variants.map(v => v.sku).filter(Boolean)));
-    const resellerSkusMap = new Map();
-    resellerProducts.forEach(p => {
-        p.variants.forEach(v => {
-            if (v.sku) resellerSkusMap.set(v.sku, { productId: p.id, variantId: v.id });
-        });
+  // Estruturas de dados otimizadas para comparação (O(1) lookup)
+  const mainProductsBySku = new Map();
+  mainProducts.forEach(p => {
+    p.variants.forEach(v => {
+      if (v.sku) mainProductsBySku.set(v.sku, p);
     });
+  });
+  
+  const resellerProductsBySku = new Map();
+  resellerProducts.forEach(p => {
+    p.variants.forEach(v => {
+      if (v.sku) resellerProductsBySku.set(v.sku, p);
+    });
+  });
 
-    switch (job.type) {
-      case 'sync-all-products-for-shop': {
-        for (const product of mainProducts) {
-          const productExists = product.variants.some(v => v.sku && resellerSkusMap.has(v.sku));
-          if (!productExists) {
-            await shopifyService.createProductInStore(product, resellerToken, shopifyDomain);
-          }
+  switch (job.type) {
+    case 'sync-all-products-for-shop': {
+      let createdCount = 0;
+      for (const product of mainProducts) {
+        const productExists = product.variants.some(v => v.sku && resellerProductsBySku.has(v.sku));
+        if (!productExists) {
+          await shopifyService.createProductInStore(product, resellerToken, shopifyDomain);
+          createdCount++;
         }
-        break;
       }
+      console.log(`[WORKER] ${createdCount} novos produtos criados em ${shopifyDomain}.`);
+      break;
+    }
 
-      case 'cleanup-obsolete-products-for-shop': {
-        const productsToDelete = new Set();
-        for (const product of resellerProducts) {
-          const isObsolete = product.variants.every(v => !v.sku || !mainSkus.has(v.sku));
-          if (isObsolete) {
-            productsToDelete.add(product.id);
-          }
+    case 'cleanup-obsolete-products-for-shop': {
+      const productsToDelete = new Set();
+      for (const product of resellerProducts) {
+        const isObsolete = product.variants.every(v => !v.sku || !mainProductsBySku.has(v.sku));
+        if (isObsolete) {
+          productsToDelete.add(product.id);
         }
-        console.log(`[WORKER] ${productsToDelete.size} produtos obsoletos encontrados para deleção.`);
-        for (const productId of productsToDelete) {
-          await shopifyService.deleteProductFromStore(productId, resellerToken, shopifyDomain);
-        }
-        break;
       }
-      
-      case 'update-products-for-shop': {
-        // Esta é uma lógica complexa. Por enquanto, vamos focar em atualizar o que já existe.
-        // Uma versão mais avançada poderia comparar hashes de dados para ver se algo mudou.
-        for (const product of mainProducts) {
-            for(const variant of product.variants) {
-                if(variant.sku && resellerSkusMap.has(variant.sku)) {
-                    const existingProduct = resellerSkusMap.get(variant.sku);
-                    // Atualiza o produto principal (título, descrição, etc.)
-                    await shopifyService.updateProductInStore(existingProduct.productId, product, resellerToken, shopifyDomain);
-                    // Atualiza a variante específica (preço, inventário)
-                    await shopifyService.updateVariantInStore(existingProduct.variantId, variant, resellerToken, shopifyDomain);
+      console.log(`[WORKER] ${productsToDelete.size} produtos obsoletos encontrados para deleção.`);
+      for (const productId of productsToDelete) {
+        await shopifyService.deleteProductFromStore(productId, resellerToken, shopifyDomain);
+      }
+      break;
+    }
+    
+    case 'update-products-for-shop': {
+      let updatedCount = 0;
+      for (const [sku, mainProduct] of mainProductsBySku.entries()) {
+        if (resellerProductsBySku.has(sku)) {
+          const resellerProduct = resellerProductsBySku.get(sku);
+          // TODO: Adicionar uma verificação mais inteligente para ver se há de facto alterações
+          // antes de enviar a requisição de atualização.
+          await shopifyService.updateProductInStore(resellerProduct.id, mainProduct, resellerToken, shopifyDomain);
+          updatedCount++;
+        }
+      }
+      console.log(`[WORKER] ${updatedCount} produtos existentes foram atualizados em ${shopifyDomain}.`);
+      break;
+    }
+
+    case 'sync-status-for-shop': {
+        let statusUpdateCount = 0;
+        for (const [sku, mainProduct] of mainProductsBySku.entries()) {
+            if (resellerProductsBySku.has(sku)) {
+                const resellerProduct = resellerProductsBySku.get(sku);
+                if (resellerProduct.status !== mainProduct.status) {
+                    await shopifyService.updateProductStatusInStore(resellerProduct.id, mainProduct.status, resellerToken, shopifyDomain);
+                    statusUpdateCount++;
                 }
             }
         }
+        console.log(`[WORKER] ${statusUpdateCount} status de produtos sincronizados em ${shopifyDomain}.`);
         break;
-      }
     }
-  } else {
-    // Lógica para outros tipos de jobs que não precisam de ambas as listas
-    switch(job.type) {
-        // Exemplo:
-        // case 'send-report':
-        //   // ...
-        //   break;
-        default:
-            throw new Error(`Tipo de job desconhecido: ${job.type}`);
-    }
+
+    default:
+      throw new Error(`Tipo de job desconhecido: ${job.type}`);
   }
 }
 
-// O motor do worker (runWorker) permanece o mesmo.
+// O motor do worker (runWorker) permanece o mesmo, pois já é robusto.
 async function runWorker() {
     let jobToRun = null;
     const t = await sequelize.transaction();
