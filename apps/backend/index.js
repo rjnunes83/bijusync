@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import helmet from 'helmet';
 import sequelize from './config/db.js';
 
 // --- 1. CONFIGURAÇÃO E VALIDAÇÃO INICIAL ---
@@ -14,6 +15,10 @@ const requiredEnvVars = [
   'PUBLIC_APP_CLIENT_SECRET',
   'HOST',
 ];
+
+if (process.env.NODE_ENV !== 'production') {
+  console.info('[ENV] Variáveis carregadas:', requiredEnvVars.map(v => `${v}=${process.env[v] ? 'OK' : '❌'}`));
+}
 
 for (const v of requiredEnvVars) {
   if (!process.env[v]) {
@@ -34,6 +39,7 @@ const PORT = process.env.PORT || 3000;
 // Middlewares Globais
 app.use(cors({ origin: process.env.ALLOW_ORIGIN || '*', credentials: true }));
 app.use(express.json());
+app.use(helmet());
 
 // Logging para debug detalhado
 app.use((req, res, next) => {
