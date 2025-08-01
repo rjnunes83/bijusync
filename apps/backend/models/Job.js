@@ -40,6 +40,16 @@ const Job = sequelize.define('Job', {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  // ------ OPCIONAIS ------
+  priority: {
+    type: DataTypes.INTEGER,
+    defaultValue: 5,
+    allowNull: false,
+  },
+  scheduled_for: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
 }, {
   tableName: 'jobs',
   timestamps: true,
