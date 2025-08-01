@@ -25,7 +25,6 @@ for (const v of requiredEnvVars) {
 import shopifyAuthRoutes from './routes/shopifyAuth.js';
 import productRoutes from './routes/products.js';
 import catalogRoutes from './routes/catalog.js';
-import testRoutes from './routes/testRoutes.js';
 
 // --- 3. INICIALIZAÇÃO DO EXPRESS ---
 const app = express();
@@ -45,7 +44,6 @@ app.use((req, res, next) => {
 app.use('/auth', shopifyAuthRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/catalog', catalogRoutes);
-app.use('/test', testRoutes);
 
 // --- 5. Healthcheck e Raiz (únicas exceções permitidas aqui) ---
 app.get('/health', (req, res) => {
