@@ -1,6 +1,7 @@
 
 
-import { SessionStorage, Session } from '@shopify/shopify-app-session-storage';
+import pkg from '@shopify/shopify-app-session-storage';
+const { SessionStorage, Session } = pkg;
 
 // URL do nosso backend. Deve vir de uma variável de ambiente.
 const BACKEND_URL = process.env.BACKEND_API_URL || 'http://localhost:3000';
