@@ -24,7 +24,7 @@
     "test": "npm run test --workspaces",
     "lint": "eslint . --ext .js,.ts,.tsx",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi"
   },
   "engines": {
     "node": ">=18.20.0"
