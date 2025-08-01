@@ -30,6 +30,22 @@ const ShopService = {
     });
     return shops.map(shop => shop.toJSON());
   },
+
+  /**
+   * Marca uma loja como desinstalada e invalida o token de acesso.
+   */
+  async uninstallShop(shopify_domain) {
+    const shop = await Shop.findOne({ where: { shopify_domain } });
+    if (shop) {
+      shop.installed = false;
+      shop.access_token = null; // Invalida o token por segurança
+      await shop.save();
+      console.log(`[ShopService] Loja ${shopify_domain} marcada como desinstalada.`);
+      return true;
+    }
+    console.warn(`[ShopService] Tentativa de desinstalar uma loja não encontrada: ${shopify_domain}`);
+    return false;
+  },
 };
 
 export default ShopService;
