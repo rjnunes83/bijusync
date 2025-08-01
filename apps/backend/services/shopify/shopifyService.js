@@ -1,102 +1,106 @@
+// apps/backend/services/shopify/shopifyService.js
+
 import dotenv from 'dotenv';
 dotenv.config();
 import axios from 'axios';
 
+// --- Variáveis de ambiente essenciais ---
 const mainStoreDomain = process.env.SHOPIFY_MAIN_STORE;
 const mainStoreAccessToken = process.env.SHOPIFY_ACCESS_TOKEN;
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2023-07';
 
-const SHOPIFY_BASE_URL = `https://${mainStoreDomain}/admin/api/${SHOPIFY_API_VERSION}`;
-
-// Defesa para variáveis essenciais
+// Validação das envs moved para o index.js (mas mantemos defesa local)
 if (!mainStoreDomain) throw new Error('❌ SHOPIFY_MAIN_STORE não definida.');
 if (!mainStoreAccessToken) throw new Error('❌ SHOPIFY_ACCESS_TOKEN não definida.');
 
-// Utilitário para logs detalhados
+// --- Logging detalhado por loja (enterprise) ---
 function logWithStore(store, msg, ...args) {
   console.log(`[Shopify][${store}] ${msg}`, ...args);
 }
 
-// --- BUSCA TODOS OS PRODUTOS DA LOJA-MÃE, COM PAGINAÇÃO ---
+// --- Busca todos os produtos da loja-mãe, com paginação via header Link (CORRIGIDO) ---
 async function getAllProducts() {
-  let pageInfo = null;
   let allProducts = [];
-  let hasNextPage = true;
-  const limit = 250;
+  let nextUrl = `https://${mainStoreDomain}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`;
 
-  while (hasNextPage) {
-    try {
-      const url = `https://${mainStoreDomain}/admin/api/${SHOPIFY_API_VERSION}/products.json`;
-      const params = { limit };
-      if (pageInfo) params.page_info = pageInfo;
-      const response = await axios.get(url, {
+  logWithStore(mainStoreDomain, 'Iniciando busca paginada de produtos...');
+
+  try {
+    while (nextUrl) {
+      const response = await axios.get(nextUrl, {
         headers: {
           'X-Shopify-Access-Token': mainStoreAccessToken,
           'Content-Type': 'application/json',
-        },
-        params,
+        }
       });
+
       const products = response.data.products || [];
       allProducts = allProducts.concat(products);
 
-      // Shopify paginação: checa Link header para next page
       const linkHeader = response.headers['link'];
-      if (linkHeader && linkHeader.includes('rel="next"')) {
-        // Extrai page_info do link header
-        const match = linkHeader.match(/page_info=([^&>]+)/);
-        pageInfo = match ? match[1] : null;
-        hasNextPage = !!pageInfo;
-      } else {
-        hasNextPage = false;
+      nextUrl = null;
+      if (linkHeader) {
+        const links = linkHeader.split(',');
+        const nextLink = links.find(link => link.includes('rel="next"'));
+        if (nextLink) {
+          const match = nextLink.match(/<(.*?)>/);
+          if (match && match[1]) {
+            nextUrl = match[1];
+            logWithStore(mainStoreDomain, `Próxima página: ${nextUrl}`);
+          }
+        }
       }
-    } catch (error) {
-      logWithStore(mainStoreDomain, '❌ Erro ao buscar produtos:', error?.response?.data || error.message);
-      // Se der erro, encerra e retorna o que conseguiu até então (fail-safe)
-      break;
     }
+    logWithStore(mainStoreDomain, `Busca concluída. Total de ${allProducts.length} produtos.`);
+    return allProducts;
+  } catch (error) {
+    logWithStore(mainStoreDomain, '❌ Erro ao buscar produtos:', error?.response?.data || error.message);
+    throw new Error(`Falha ao buscar produtos da loja-mãe (${mainStoreDomain}).`);
   }
-  return allProducts;
 }
 
-// --- BUSCA PRODUTOS DE UMA LOJA REVENDEDORA ESPECÍFICA ---
+// --- Busca produtos de uma loja revendedora específica, com paginação robusta (CORRIGIDO) ---
 async function getAllProductsFromShop(token, shop) {
-  let pageInfo = null;
   let allProducts = [];
-  let hasNextPage = true;
-  const limit = 250;
+  let nextUrl = `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=250`;
 
-  while (hasNextPage) {
-    try {
-      const url = `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/products.json`;
-      const params = { limit };
-      if (pageInfo) params.page_info = pageInfo;
-      const response = await axios.get(url, {
+  logWithStore(shop, 'Iniciando busca paginada de produtos...');
+
+  try {
+    while (nextUrl) {
+      const response = await axios.get(nextUrl, {
         headers: {
           'X-Shopify-Access-Token': token,
           'Content-Type': 'application/json',
-        },
-        params,
+        }
       });
+
       const products = response.data.products || [];
       allProducts = allProducts.concat(products);
 
       const linkHeader = response.headers['link'];
-      if (linkHeader && linkHeader.includes('rel="next"')) {
-        const match = linkHeader.match(/page_info=([^&>]+)/);
-        pageInfo = match ? match[1] : null;
-        hasNextPage = !!pageInfo;
-      } else {
-        hasNextPage = false;
+      nextUrl = null;
+      if (linkHeader) {
+        const links = linkHeader.split(',');
+        const nextLink = links.find(link => link.includes('rel="next"'));
+        if (nextLink) {
+          const match = nextLink.match(/<(.*?)>/);
+          if (match && match[1]) {
+            nextUrl = match[1];
+            logWithStore(shop, `Próxima página: ${nextUrl}`);
+          }
+        }
       }
-    } catch (error) {
-      logWithStore(shop, '❌ Erro ao buscar produtos:', error?.response?.data || error.message);
-      break;
     }
+    logWithStore(shop, `Busca concluída. Total de ${allProducts.length} produtos.`);
+    return allProducts;
+  } catch (error) {
+    logWithStore(shop, '❌ Erro ao buscar produtos:', error?.response?.data || error.message);
+    throw new Error(`Falha ao buscar produtos da loja ${shop}.`);
   }
-  return allProducts;
 }
 
-// --- TRANSFORMA PRODUTO BRUTO EM OBJETO CLEAN ---
+// --- Transforma produto bruto em objeto clean (padrão enterprise) ---
 function transformProduct(product) {
   if (!product) return null;
   return {
@@ -120,13 +124,13 @@ function transformProduct(product) {
   };
 }
 
-// --- BUSCA E TRANSFORMA TODOS OS PRODUTOS DA LOJA-MÃE ---
+// --- Busca e transforma todos os produtos da loja-mãe ---
 async function getAndTransformAllProducts() {
   const products = await getAllProducts();
   return products.map(transformProduct);
 }
 
-// --- CRIA UM PRODUTO EM UMA LOJA REVENDEDORA ---
+// --- Cria produto em uma loja revendedora ---
 async function createProductInStore(productData, accessToken, shop) {
   try {
     const response = await axios.post(
@@ -143,11 +147,11 @@ async function createProductInStore(productData, accessToken, shop) {
     return response.data.product;
   } catch (error) {
     logWithStore(shop, '❌ Erro ao criar produto:', error?.response?.data || error.message);
-    throw error;
+    throw new Error(`Falha ao criar produto na loja ${shop}.`);
   }
 }
 
-// --- DELETA UM PRODUTO EM UMA LOJA REVENDEDORA ---
+// --- Deleta produto em uma loja revendedora ---
 async function deleteProductFromStore(productId, accessToken, shop) {
   try {
     const response = await axios.delete(
@@ -163,11 +167,11 @@ async function deleteProductFromStore(productId, accessToken, shop) {
     return response.status === 200;
   } catch (error) {
     logWithStore(shop, `❌ Erro ao deletar produto ${productId}:`, error?.response?.data || error.message);
-    return false;
+    throw new Error(`Falha ao deletar produto ${productId} da loja ${shop}.`);
   }
 }
 
-// --- ATUALIZA PRODUTO EM UMA LOJA REVENDEDORA ---
+// --- Atualiza produto em uma loja revendedora ---
 async function updateProductInStore(productId, updatedData, accessToken, shop) {
   try {
     const response = await axios.put(
@@ -184,11 +188,11 @@ async function updateProductInStore(productId, updatedData, accessToken, shop) {
     return response.data.product;
   } catch (error) {
     logWithStore(shop, `❌ Erro ao atualizar produto ${productId}:`, error?.response?.data || error.message);
-    throw error;
+    throw new Error(`Falha ao atualizar produto ${productId} da loja ${shop}.`);
   }
 }
 
-// --- ATUALIZA VARIANTE EM UMA LOJA REVENDEDORA ---
+// --- Atualiza variante em uma loja revendedora ---
 async function updateVariantInStore(variantId, updatedData, accessToken, shop) {
   try {
     const response = await axios.put(
@@ -205,11 +209,11 @@ async function updateVariantInStore(variantId, updatedData, accessToken, shop) {
     return response.data.variant;
   } catch (error) {
     logWithStore(shop, `❌ Erro ao atualizar variante ${variantId}:`, error?.response?.data || error.message);
-    throw error;
+    throw new Error(`Falha ao atualizar variante ${variantId} da loja ${shop}.`);
   }
 }
 
-// --- ATUALIZA STATUS DE UM PRODUTO ---
+// --- Atualiza status de um produto ---
 async function updateProductStatusInStore(productId, newStatus, accessToken, shop) {
   try {
     const response = await axios.put(
@@ -231,11 +235,11 @@ async function updateProductStatusInStore(productId, newStatus, accessToken, sho
     return response.data.product;
   } catch (error) {
     logWithStore(shop, `❌ Erro ao atualizar status do produto ${productId}:`, error?.response?.data || error.message);
-    throw error;
+    throw new Error(`Falha ao atualizar status do produto ${productId} da loja ${shop}.`);
   }
 }
 
-// --- EXPORTS ---
+// --- EXPORTS (padronizado) ---
 export {
   getAllProducts,
   transformProduct,

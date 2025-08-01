@@ -1,98 +1,97 @@
-// backend/routes/shopifyAuth.js
-
 import express from 'express';
-import axios from 'axios';
-import dotenv from 'dotenv';
-import { saveOrUpdateShop } from '../services/shopService.js';
-
-dotenv.config();
-
+import crypto from 'crypto';
+import querystring from 'querystring';
+import fetch from 'node-fetch';
+import cookieParser from 'cookie-parser';
+import ShopService from '../services/shopService.js';
 
 const router = express.Router();
+router.use(cookieParser());
 
 /**
- * GET /auth/login
- * Alias amigável para iniciar OAuth (aceita shop via query)
- * Exemplo: /auth/login?shop=testebijuecia.myshopify.com
+ * Rota de instalação (OAuth) - Gera e armazena um state (nonce) anti-CSRF.
  */
-router.get('/auth/login', (req, res) => {
-  const shop = req.query.shop;
-  if (!shop) {
-    return res.status(400).json({ error: 'Parâmetro "shop" ausente.' });
-  }
-  // Redireciona para a rota /auth, que já faz todo o fluxo OAuth
-  return res.redirect(`/auth?shop=${encodeURIComponent(shop)}`);
-});
-
-/**
- * GET /auth
- * Inicia o fluxo de OAuth com a Shopify.
- */
-router.get('/auth', (req, res) => {
-  const shop = req.query.shop;
-
-  if (!shop || !shop.endsWith('.myshopify.com')) {
-    console.warn('[shopifyAuth] Parâmetro "shop" inválido:', shop);
-    return res.status(400).json({ error: 'Parâmetro "shop" inválido ou ausente.' });
+router.get('/', (req, res) => {
+  const { shop } = req.query;
+  if (!shop || !/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/.test(shop)) {
+    return res.status(400).send('Parâmetro "shop" inválido ou ausente.');
   }
 
-  const redirectUri = `${process.env.SHOPIFY_APP_URL}/auth/callback`;
-  const clientId = process.env.SHOPIFY_API_KEY;
+  // Gera um nonce (state) para prevenção CSRF
+  const state = crypto.randomBytes(16).toString('hex');
+  res.cookie('shopify_state', state, { httpOnly: true, secure: true, sameSite: 'lax' });
+
+  const redirectUri = process.env.PUBLIC_APP_REDIRECT_URI;
   const scopes = process.env.SHOPIFY_SCOPES || 'read_products,write_products';
 
-  if (!clientId) {
-    console.error('[shopifyAuth] SHOPIFY_API_KEY não definida.');
-    return res.status(500).json({ error: 'Erro interno: API Key não configurada.' });
-  }
-
-  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-  console.info('[shopifyAuth] Redirecionando usuário para instalação da app:', installUrl);
+  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${process.env.PUBLIC_APP_CLIENT_ID}&scope=${scopes}&state=${state}&redirect_uri=${redirectUri}`;
+  console.info(`[AUTH] Redirecionando para instalação: ${shop}`);
   res.redirect(installUrl);
 });
 
 /**
- * GET /auth/callback
- * Finaliza OAuth: troca o code pelo access token e salva no banco.
+ * Callback OAuth - Valida state (CSRF) e HMAC (autenticidade).
  */
-router.get('/auth/callback', async (req, res) => {
-  const { shop, code } = req.query;
-
-  if (!shop || !code || !shop.endsWith('.myshopify.com')) {
-    console.warn('[shopifyAuth] Callback com parâmetros inválidos:', req.query);
-    return res.status(400).json({ error: 'Parâmetros inválidos ou ausentes.' });
-  }
-
+router.get('/callback', async (req, res, next) => {
   try {
-    // Troca code por access token
-    const tokenResponse = await axios.post(`https://${shop}/admin/oauth/access_token`, {
-      client_id: process.env.SHOPIFY_API_KEY,
-      client_secret: process.env.SHOPIFY_API_SECRET,
-      code
+    const { shop, code, hmac, state } = req.query;
+    const stateCookie = req.cookies.shopify_state;
+
+    // 1. Validação do state (proteção CSRF)
+    if (typeof state !== 'string' || state !== stateCookie) {
+      return res.status(403).send('A autenticação falhou. State inválido (proteção CSRF).');
+    }
+    res.clearCookie('shopify_state'); // Remove o state após uso
+
+    // 2. Validação do HMAC (garantia de autenticidade)
+    const { hmac: _, ...map } = req.query;
+    const message = querystring.stringify(map);
+    const generatedHmac = crypto
+      .createHmac('sha256', process.env.PUBLIC_APP_CLIENT_SECRET)
+      .update(message)
+      .digest('hex');
+
+    if (generatedHmac !== hmac) {
+      return res.status(400).send('A autenticação falhou. Validação do HMAC falhou.');
+    }
+
+    // 3. Troca do código pelo access_token
+    const accessTokenRequestUrl = `https://${shop}/admin/oauth/access_token`;
+    const accessTokenPayload = {
+      client_id: process.env.PUBLIC_APP_CLIENT_ID,
+      client_secret: process.env.PUBLIC_APP_CLIENT_SECRET,
+      code,
+    };
+
+    const response = await fetch(accessTokenRequestUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(accessTokenPayload),
     });
 
-    const accessToken = tokenResponse.data.access_token;
-    const scope = tokenResponse.data.scope;
+    const tokenData = await response.json();
+    if (!tokenData.access_token) {
+      throw new Error(`Falha ao obter access_token da Shopify: ${JSON.stringify(tokenData)}`);
+    }
 
-    // Salva ou atualiza loja no banco
-    await saveOrUpdateShop({
-      shopifyDomain: shop,
-      accessToken: accessToken,
-      scope: scope
-    });
+    await ShopService.upsertShop(shop, tokenData.access_token);
 
-    console.info(`[shopifyAuth] Loja "${shop}" autenticada com sucesso. Token salvo no banco.`);
-    
-    // Redireciona para app após sucesso
-    return res.redirect(`${process.env.SHOPIFY_APP_URL}/auth/success?shop=${encodeURIComponent(shop)}`);
+    console.info(`[AUTH] Loja ${shop} autenticada e salva com sucesso.`);
 
-    // Se preferir, pode mostrar um HTML customizado informando sucesso, sem expor o token.
-    // res.send('✅ Sua loja foi conectada com sucesso! Você já pode fechar esta janela.');
-
-  } catch (error) {
-    console.error('[shopifyAuth] Erro ao trocar code por token:', error?.response?.data || error.message);
-    return res.status(500).json({ error: 'Erro ao concluir autenticação com a Shopify.' });
+    // 4. Redirecionamento para o admin da app na Shopify (user experience)
+    res.redirect(`https://${shop}/admin/apps/${process.env.PUBLIC_APP_CLIENT_ID}`);
+  } catch (err) {
+    next(err);
   }
+});
+
+/**
+ * Alias para login (Shopify exige /auth/login)
+ */
+router.get('/login', (req, res) => {
+  const { shop } = req.query;
+  if (!shop) return res.status(400).send('Faltando parâmetro "shop" na URL.');
+  res.redirect(`/auth?shop=${shop}`);
 });
 
 export default router;

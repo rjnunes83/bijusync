@@ -1,218 +1,87 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { Pool } from 'pg';
 import sequelize from './config/db.js';
 
+// --- 1. CONFIGURAÇÃO E VALIDAÇÃO INICIAL ---
 dotenv.config();
-console.log('DATABASE_URL carregada:', process.env.DATABASE_URL);
 
-// Carrega rotas modulares
-import shopifyAuthRoutes from './routes/shopifyAuth.js';
-import testRoutes from './routes/testRoutes.js';
-import productRoutes from './routes/products.js';
-import productsSyncRoutes from './routes/productsSync.js';
-import syncRoutes from './routes/syncRoutes.js';
-import catalogRoutes from './routes/catalog.js';
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'SHOPIFY_MAIN_STORE',
+  'SHOPIFY_ACCESS_TOKEN',
+  'PUBLIC_APP_CLIENT_ID',
+  'PUBLIC_APP_CLIENT_SECRET',
+  'HOST',
+];
 
-if (!process.env.SHOPIFY_MAIN_STORE || !process.env.SHOPIFY_ACCESS_TOKEN) {
-  console.error('❌ Variáveis de ambiente obrigatórias não definidas: SHOPIFY_MAIN_STORE e SHOPIFY_ACCESS_TOKEN');
-  process.exit(1);
+for (const v of requiredEnvVars) {
+  if (!process.env[v]) {
+    throw new Error(`FATAL ERROR: A variável de ambiente crítica "${v}" não está definida.`);
+  }
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+// --- 2. IMPORTAÇÃO DE ROTAS (apenas delegação) ---
+import shopifyAuthRoutes from './routes/shopifyAuth.js';
+import productRoutes from './routes/products.js';
+import catalogRoutes from './routes/catalog.js';
+import syncRoutes from './routes/syncRoutes.js';
+import testRoutes from './routes/testRoutes.js';
 
+// --- 3. INICIALIZAÇÃO DO EXPRESS ---
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware global de CORS e JSON
+// Middlewares Globais
 app.use(cors({ origin: process.env.ALLOW_ORIGIN || '*', credentials: true }));
 app.use(express.json());
 
-// Middleware de log de requests
+// Logging para debug detalhado
 app.use((req, res, next) => {
-  console.info(`📥 [${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.info(`[REQUEST] 📥 ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
   next();
 });
 
-// Rotas modulares
+// --- 4. DELEGAÇÃO DE ROTAS ---
 app.use('/auth', shopifyAuthRoutes);
-app.use('/', testRoutes);
-app.use('/api', productRoutes);
+app.use('/api/products', productRoutes);
 app.use('/api/catalog', catalogRoutes);
-app.use('/products', productsSyncRoutes);
-app.use('/', syncRoutes);
+app.use('/api/sync', syncRoutes);
+app.use('/test', testRoutes);
 
-// Alias para compatibilidade com Shopify: /auth/login também redireciona para instalação OAuth
-app.get('/auth/login', async (req, res) => {
-  const shop = req.query.shop;
-  if (!shop) return res.status(400).send('Faltando parâmetro "shop" na URL.');
-  const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
-  const scopes = 'read_products,write_products';
-  const redirectUri = process.env.PUBLIC_APP_REDIRECT_URI || 'https://bijusync.onrender.com/auth/callback';
-  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${apiKey}&scope=${scopes}&redirect_uri=${redirectUri}`;
-  console.info(`🔗 [LOGIN] Redirecionando para instalação: ${installUrl}`);
-  res.redirect(installUrl);
-});
-
-
-// Rota de instalação e callback OAuth
-app.get('/auth', async (req, res) => {
-  const shop = req.query.shop;
-  if (!shop) return res.status(400).send('Faltando parâmetro "shop" na URL.');
-  const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
-  const scopes = 'read_products,write_products';
-  const redirectUri = process.env.PUBLIC_APP_REDIRECT_URI || 'https://bijusync.onrender.com/auth/callback';
-  const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${apiKey}&scope=${scopes}&redirect_uri=${redirectUri}`;
-  console.info(`🔗 Redirecionando para instalação: ${installUrl}`);
-  res.redirect(installUrl);
-});
-
-app.get('/auth/callback', async (req, res) => {
-  console.log('--- [INICIO /auth/callback] ---', { query: req.query, time: new Date().toISOString() });
-  const { shop, code } = req.query;
-  if (!shop || !code) {
-    console.warn('⚠️ Callback chamado sem shop ou code:', { shop, code });
-    console.error('--- [FIM /auth/callback - ERRO] ---', { shop, code, tokenData: undefined, time: new Date().toISOString() });
-    return res.status(400).send('Parâmetros "shop" e "code" são obrigatórios.');
-  }
-  const apiKey = process.env.PUBLIC_APP_CLIENT_ID || '4303a598d58af8fa15d3cb080876b3d';
-  const apiSecret = process.env.PUBLIC_APP_CLIENT_SECRET || '6f691b65464f631c41c74afe1d4666e0';
-  const fetch = (await import('node-fetch')).default;
-  const accessTokenRequestUrl = `https://${shop}/admin/oauth/access_token`;
-  const accessTokenPayload = { client_id: apiKey, client_secret: apiSecret, code };
-
-  try {
-    console.log('🔄 Solicitando access_token para loja:', shop, '| Payload:', accessTokenPayload);
-    const response = await fetch(accessTokenRequestUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(accessTokenPayload),
-    });
-
-    const tokenData = await response.json();
-    console.log('🔑 Resposta do tokenData:', tokenData);
-
-    if (!tokenData.access_token) {
-      console.error('❌ Falha ao obter access_token da Shopify:', tokenData);
-      console.error('--- [FIM /auth/callback - ERRO] ---', { shop, code, tokenData, time: new Date().toISOString() });
-      return res.status(500).send('Erro ao obter token de acesso.');
-    }
-
-    // Log antes do insert no banco
-    console.log('💾 Inserindo no banco:', { shop, access_token: tokenData.access_token });
-
-    const result = await pool.query(
-      `INSERT INTO shop (shopify_domain, access_token, created_at, updated_at)
-       VALUES ($1, $2, NOW(), NOW())
-       ON CONFLICT (shopify_domain) DO UPDATE
-       SET access_token = EXCLUDED.access_token, updated_at = NOW()
-       RETURNING *`,
-      [shop, tokenData.access_token]
-    );
-
-    console.info('✅ Loja autenticada e salva no banco:', result.rows[0]);
-    console.log('--- [FIM /auth/callback - SUCESSO] ---', { shop, result: result.rows[0], time: new Date().toISOString() });
-    res.send('✅ Aplicativo instalado com sucesso!');
-  } catch (err) {
-    console.error('❌ Erro ao obter token de acesso ou salvar no banco:', err);
-    console.error('--- [FIM /auth/callback - ERRO] ---', { shop, code, tokenData: undefined, time: new Date().toISOString() });
-    res.status(500).send('Erro ao processar autenticação.');
-  }
-});
-
-// Rota para buscar produtos da Shopify (apenas exemplo, mantenha em controller separado depois)
-app.get('/products', async (req, res) => {
-  try {
-    const fetch = (await import('node-fetch')).default;
-    const result = await pool.query('SELECT shopify_domain, access_token FROM shop ORDER BY created_at DESC LIMIT 1');
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Nenhuma loja conectada encontrada.' });
-    }
-
-    const { shopify_domain, access_token } = result.rows[0];
-    const shopifyResponse = await fetch(`https://${shopify_domain}/admin/api/2024-04/products.json`, {
-      headers: {
-        'X-Shopify-Access-Token': access_token,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!shopifyResponse.ok) {
-      const errorText = await shopifyResponse.text();
-      return res.status(shopifyResponse.status).json({ success: false, error: `Erro da Shopify: ${errorText}` });
-    }
-
-    const data = await shopifyResponse.json();
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error('❌ Erro ao buscar produtos:', err);
-    res.status(500).json({ success: false, error: 'Erro interno ao buscar produtos' });
-  }
-});
-
-// Healthcheck detalhado
+// --- 5. Healthcheck e Raiz (únicas exceções permitidas aqui) ---
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
-    app: 'biju-sync-backend',
-    version: process.env.npm_package_version || 'dev',
-    time: new Date().toISOString(),
+    message: 'Servidor Biju & Cia. Connect está operacional.',
+    version: process.env.npm_package_version || '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
+app.get('/', (req, res) => {
+  res.send('Biju & Cia. Connect - Backend Ativo.');
+});
+
+// --- 6. HANDLER GLOBAL DE ERRO ---
+app.use((err, req, res, next) => {
+  console.error('❌ [GLOBAL ERROR HANDLER] Erro não capturado:', err);
+  const statusCode = err.statusCode || 500;
+  const message = err.isOperational ? err.message : 'Ocorreu um erro inesperado no servidor.';
+  res.status(statusCode).json({
+    status: 'error',
+    message,
   });
 });
 
-// Endpoint de auditoria para listar lojas conectadas (seguro para uso interno)
-app.get('/api/shops', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT shopify_domain, access_token, created_at, updated_at FROM shop ORDER BY created_at DESC');
-    res.json({ shops: result.rows });
-  } catch (err) {
-    console.error('Erro ao listar lojas:', err);
-    res.status(500).json({ success: false, error: 'Erro ao listar lojas' });
-  }
-});
-
-// Página inicial básica para a Shopify abrir o app com sucesso
-app.get('/', (req, res) => {
-  res.send(`
-    <html>
-      <head>
-        <title>Biju & Cia. Connector</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #fff; color: #222; padding: 32px; }
-          h1 { color: #a16ae8; }
-          .powered { margin-top: 32px; color: #aaa; font-size: 13px; }
-        </style>
-      </head>
-      <body>
-        <h1>Biju & Cia. Connector 🚀</h1>
-        <p>Seu app está instalado e funcionando!<br>
-        Prossiga para configurar ou evoluir seu painel de controle.</p>
-        <div class="powered">Powered by Rodrigo | ${new Date().toLocaleString()}</div>
-      </body>
-    </html>
-  `);
-});
-
-// Middleware global de tratamento de erro (sempre último!)
-app.use((err, req, res, next) => {
-  console.error('❌ ERRO NÃO CAPTURADO:', err);
-  res.status(500).json({ success: false, error: 'Erro interno do servidor.' });
-});
-
-// Start server com sync do banco
+// --- 7. INICIALIZAÇÃO (só Sequelize, fail-fast) ---
 sequelize.sync({ alter: true })
   .then(() => {
-    console.log('🟢 Banco de dados sincronizado com Sequelize.');
+    console.log('🟢 Base de dados sincronizada com sucesso via Sequelize.');
     app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+      console.log(`🚀 Servidor Biju & Cia. Connect a postos na porta ${PORT}`);
     });
   })
   .catch((error) => {
-    console.error('🔴 Erro ao sincronizar com o banco de dados:', error.message);
+    console.error('🔴 ERRO FATAL AO CONECTAR/SINCRONIZAR COM A BASE DE DADOS:', error);
     process.exit(1);
   });
