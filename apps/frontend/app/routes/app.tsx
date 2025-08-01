@@ -1,44 +1,79 @@
 // apps/frontend/app/routes/app.tsx
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Outlet, useRouteError, useLocation } from "@remix-run/react";
+import { Outlet, useLoaderData, useRouteError, Link, useLocation } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
-import { AppProvider, Frame, Navigation, TopBar } from "@shopify/polaris";
-import ptBR from "@shopify/polaris/locales/pt-BR.json";
+import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-remix/react";
+import { AppProvider as PolarisAppProvider, Frame, Navigation, TopBar } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import ptBR from "@shopify/polaris/locales/pt-BR.json";
 import { admin } from "../shopify.server";
 import { useState } from "react";
 
 // Polaris CSS
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
-// Loader para autenticação e variáveis
+// Loader: autentica e determina se é loja-mãe ou revendedora
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await admin.authenticate.admin(request);
-  return json({});
+  // Autentica
+  const { shopDomain } = await admin.authenticate.admin(request);
+
+  // Defina o domínio da loja-mãe no seu .env (ex: revenda-biju.myshopify.com)
+  const mainStoreDomain = process.env.SHOPIFY_MAIN_STORE_DOMAIN;
+
+  // Verifica se a loja atual é a loja-mãe
+  const isMainStore = shopDomain === mainStoreDomain;
+
+  return json({
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    polarisTranslations: ptBR,
+    isMainStore,
+  });
 };
 
 export default function App() {
+  const { apiKey, polarisTranslations, isMainStore } = useLoaderData<typeof loader>();
   const location = useLocation();
   const [userMenuActive, setUserMenuActive] = useState(false);
 
-  // Menu Polaris Navigation
-  const navItems = [
-    { label: "Dashboard",            icon: "HomeMajor",          url: "/app",           selected: location.pathname === "/app" },
-    { label: "Sincronizar Catálogo", icon: "ImportMajor",        url: "/app/sync",      selected: location.pathname === "/app/sync" },
-    { label: "Lojas",                icon: "OrdersMajor",        url: "/app/shops",     selected: location.pathname === "/app/shops" },
-    { label: "Configurações",        icon: "SettingsMajor",      url: "/app/settings",  selected: location.pathname === "/app/settings" },
-    { label: "Suporte",              icon: "QuestionMarkMajor",  url: "/app/support",   selected: location.pathname === "/app/support" }
+  // Menu dinâmico conforme loja-mãe ou revendedora
+  const navItemsMain = [
+    { label: "Dashboard",            url: "/app",         icon: "HomeMajor" },
+    { label: "Sincronizar Catálogo", url: "/app/sync",    icon: "ImportMajor" },
+    { label: "Lojas",                url: "/app/shops",   icon: "OrdersMajor" },
+    { label: "Configurações",        url: "/app/settings",icon: "SettingsMajor" },
+    { label: "Suporte",              url: "/app/support", icon: "QuestionMarkMajor" }
   ];
+  const navItemsReseller = [
+    { label: "Dashboard",            url: "/app",         icon: "HomeMajor" },
+    { label: "Suporte",              url: "/app/support", icon: "QuestionMarkMajor" }
+    // Pode adicionar "Configurações" se for apenas perfil
+  ];
+  const navItems = isMainStore ? navItemsMain : navItemsReseller;
 
-  // TopBar para futuro multiusuário
+  // Navigation polaris estilizado
+  const navigation = (
+    <Navigation location={location.pathname}>
+      {navItems.map(item => (
+        <Navigation.Item
+          key={item.url}
+          url={item.url}
+          label={item.label}
+          icon={item.icon}
+          selected={location.pathname === item.url}
+        />
+      ))}
+    </Navigation>
+  );
+
+  // TopBar com menu do usuário
   const topBarMarkup = (
     <TopBar
       showNavigationToggle
       userMenu={
         <TopBar.UserMenu
           name="Rodrigo"
-          detail="Biju & Cia."
+          detail={isMainStore ? "Administrador" : "Revendedora"}
           initials="R"
           open={userMenuActive}
           onToggle={() => setUserMenuActive(!userMenuActive)}
@@ -48,7 +83,7 @@ export default function App() {
                 {
                   content: "Sair",
                   onAction: () => {
-                    // TODO: Integração real com sessão/Shopify Auth
+                    // TODO: integração real com Auth
                     alert("Logout!");
                   }
                 }
@@ -61,32 +96,22 @@ export default function App() {
   );
 
   return (
-    <AppProvider i18n={ptBR}>
-      <Frame
-        logo={{
-          width: 124,
-          topBarSource: "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
-          url: "/app",
-          accessibilityLabel: "Biju & Cia. Connector"
-        }}
-        navigation={
-          <Navigation location={location.pathname}>
-            {navItems.map((item) => (
-              <Navigation.Item
-                key={item.url}
-                url={item.url}
-                label={item.label}
-                icon={item.icon}
-                selected={item.selected}
-              />
-            ))}
-          </Navigation>
-        }
-        topBar={topBarMarkup}
-      >
-        <Outlet />
-      </Frame>
-    </AppProvider>
+    <ShopifyAppProvider isEmbeddedApp apiKey={apiKey}>
+      <PolarisAppProvider i18n={polarisTranslations}>
+        <Frame
+          logo={{
+            width: 124,
+            topBarSource: "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
+            url: "/app",
+            accessibilityLabel: "Biju & Cia. Connector"
+          }}
+          navigation={navigation}
+          topBar={topBarMarkup}
+        >
+          <Outlet />
+        </Frame>
+      </PolarisAppProvider>
+    </ShopifyAppProvider>
   );
 }
 
