@@ -23,7 +23,7 @@
     "clean": "rimraf node_modules apps/*/node_modules",
     "test": "npm run test --workspaces",
     "lint": "eslint . --ext .js,.ts,.tsx",
-    "format": "prettier --write .",
+    "format": "prettier --write ."
   },
   "engines": {
     "node": ">=18.20.0"
