@@ -19,15 +19,13 @@ import {
   Icon,
 } from "@shopify/polaris";
 import {
-  OnlineStoreMajor,
-  ShopMajor,
-  OrdersMajor,
-  ProductsMajor,
-  CustomersMajor,
-  CircleTickMajor,
-  AlertMajor,
+  StoreIcon,
+  ProductIcon,
+  OrderIcon,
+  AlertCircleIcon,
   SyncMinor,
-  QuestionMarkMajor,
+  CheckCircleIcon,
+  QuestionCircleIcon,
 } from "@shopify/polaris-icons";
 import { useEffect, useState } from "react";
 
@@ -39,25 +37,25 @@ const indicadoresMae = [
   {
     title: "Lojas Revendedoras Ativas",
     value: 13,
-    icon: ShopMajor,
+    icon: StoreIcon,
     tone: "success",
   },
   {
     title: "Produtos Sincronizados",
     value: 2941,
-    icon: ProductsMajor,
+    icon: ProductIcon,
     tone: "info",
   },
   {
     title: "Pedidos nas Lojas Revendedoras",
     value: 107,
-    icon: OrdersMajor,
+    icon: OrderIcon,
     tone: "highlight",
   },
   {
     title: "Erros/Pendências",
     value: 2,
-    icon: AlertMajor,
+    icon: AlertCircleIcon,
     tone: "critical",
   },
 ];
@@ -66,13 +64,13 @@ const indicadoresRevendedora = [
   {
     title: "Produtos Sincronizados",
     value: 97,
-    icon: ProductsMajor,
+    icon: ProductIcon,
     tone: "success",
   },
   {
     title: "Pedidos",
     value: 7,
-    icon: OrdersMajor,
+    icon: OrderIcon,
     tone: "info",
   },
   {
@@ -84,7 +82,7 @@ const indicadoresRevendedora = [
   {
     title: "Status da Loja",
     value: "Ativa",
-    icon: CircleTickMajor,
+    icon: CheckCircleIcon,
     tone: "success",
   },
 ];
@@ -175,7 +173,7 @@ export default function Dashboard() {
                   {atividades.map((a, idx) => (
                     <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <Icon
-                        source={a.error ? AlertMajor : CircleTickMajor}
+                        source={a.error ? AlertCircleIcon : CheckCircleIcon}
                         tone={a.error ? "critical" : "success"}
                       />
                       <Text as="span">{a.text}</Text>
@@ -194,7 +192,7 @@ export default function Dashboard() {
                 <Card>
                   <BlockStack gap="200">
                     <Text variant="headingMd">
-                      <Icon source={QuestionMarkMajor} tone="base" /> Precisa de ajuda?
+                      <Icon source={QuestionCircleIcon} tone="base" /> Precisa de ajuda?
                     </Text>
                     <Button
                       variant="primary"
