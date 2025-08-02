@@ -1,7 +1,7 @@
 /**
  * Shopify App - Classe Mundial Enterprise
  * Polaris v13.9.5 | Multilinguagem dinâmica | Menu dinâmico (mãe/revendedora)
- * Última revisão: 2025-08-02
+ * Última revisão: 2025-08-02 | Revisado por ChatGPT Enterprise AI
  */
 
 import type { LoaderFunctionArgs } from "@remix-run/node";
@@ -12,44 +12,53 @@ import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-remix/re
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-// IMPORTS DAS TRADUÇÕES USANDO O CAMINHO CORRETO
+// Importação das traduções no caminho correto
 import ptBR from "../locales/pt-BR.json";
 import en from "../locales/en.json";
 import { admin } from "../shopify.server";
 
-// Link de estilos para Polaris
+/**
+ * Links de CSS global Polaris (enterprise)
+ */
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 /**
- * Detecta o idioma mais adequado baseado no header Accept-Language
+ * Detecta o idioma ideal via Accept-Language ou query param.
+ * Future-proof: permite expansão para outros idiomas.
  */
-function detectLocale(request: Request) {
+function detectLocale(request: Request): "pt-BR" | "en" {
+  const url = new URL(request.url);
+  const lang = url.searchParams.get("lang");
+  if (lang === "en") return "en";
+  if (lang === "pt-BR") return "pt-BR";
   const acceptLanguage = request.headers.get("accept-language") || "";
-  if (acceptLanguage.includes("pt-BR")) return "pt-BR";
   if (acceptLanguage.includes("en")) return "en";
-  return "pt-BR"; // fallback
+  return "pt-BR";
 }
 
 /**
- * Detecta o tipo de loja pelo domínio.
- * - Se domínio === revenda-biju.myshopify.com => "mae" (loja-mãe)
- * - Qualquer outro domínio => "revendedora"
- * - Fallback para dev/local
+ * Detecta o tipo de loja de acordo com o domínio.
+ * Considera também localhost/staging para dev.
  */
 function getTipoLoja(request: Request): "mae" | "revendedora" {
   const hostname = new URL(request.url).hostname;
   if (
     hostname === "revenda-biju.myshopify.com" ||
     hostname === "localhost" ||
-    hostname === "127.0.0.1"
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".ngrok-free.app") // Para facilitar debug remoto
   ) {
-    // Em local/dev, trate como "mae" para facilitar testes!
     return "mae";
   }
   return "revendedora";
 }
 
-// Loader global com idioma dinâmico e tipo de loja
+/**
+ * Loader global enterprise:
+ * - Autentica via Shopify
+ * - Injeta i18n, API key e tipo de loja
+ * - Protege contra variáveis ausentes em produção
+ */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await admin.authenticate.admin(request);
 
@@ -59,9 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const locale = detectLocale(request);
-  let i18n = ptBR; // fallback padrão
-  if (locale === "en") i18n = en;
-
+  const i18n = locale === "en" ? en : ptBR;
   const tipoLoja = getTipoLoja(request);
 
   return json({
@@ -72,10 +79,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 };
 
-// Menu dinâmico de acordo com tipoLoja
-function Menu({ tipoLoja }: { tipoLoja: string }) {
+/**
+ * Menu dinâmico conforme papel da loja
+ * - Menu completo para loja-mãe
+ * - Menu enxuto para revendedora
+ * Fácil expansão para futuros perfis.
+ */
+function Menu({ tipoLoja }: { tipoLoja: "mae" | "revendedora" }) {
   if (tipoLoja === "mae") {
-    // Menu completo para loja-mãe
     return (
       <nav style={menuStyle}>
         <Link to="/app" style={linkStyle}>Dashboard</Link>
@@ -86,7 +97,6 @@ function Menu({ tipoLoja }: { tipoLoja: string }) {
       </nav>
     );
   }
-  // Menu simplificado para revendedora
   return (
     <nav style={menuStyle}>
       <Link to="/app" style={linkStyle}>Dashboard</Link>
@@ -96,8 +106,8 @@ function Menu({ tipoLoja }: { tipoLoja: string }) {
   );
 }
 
-// --- Styles (pode migrar para arquivo .css.ts ou styled-components futuramente) ---
-const menuStyle = {
+// --- Styles: pronto para migração para CSS-in-JS ou Tailwind ---
+const menuStyle: React.CSSProperties = {
   padding: "10px 20px",
   borderBottom: "1px solid #E1E3E5",
   background: "#fff",
@@ -107,7 +117,7 @@ const menuStyle = {
   gap: 12,
 };
 
-const linkStyle = {
+const linkStyle: React.CSSProperties = {
   fontWeight: 600,
   marginRight: 18,
   color: "#313133",
@@ -119,10 +129,12 @@ const linkStyle = {
   lineHeight: 2,
 };
 
-// App principal
+/**
+ * App principal: Provider Polaris + App Bridge + Menu dinâmico
+ * Sempre provê i18n para rotas filhas!
+ */
 export default function App() {
   const { apiKey, i18n, tipoLoja } = useLoaderData<typeof loader>();
-
   return (
     <ShopifyAppProvider isEmbeddedApp apiKey={apiKey}>
       <PolarisAppProvider i18n={i18n}>
@@ -133,13 +145,18 @@ export default function App() {
   );
 }
 
-// Tratamento global de erros
+/**
+ * Tratamento global de erros: delega para o boundary oficial da Shopify,
+ * mas pode ser personalizado para UX amigável, logs, Sentry etc.
+ */
 export function ErrorBoundary() {
   const error = useRouteError();
   return boundary.error(error);
 }
 
-// Headers HTTP padrão
+/**
+ * Headers HTTP padrão. Expansível para Security Headers.
+ */
 export const headers = (headersArgs: any) => {
   return boundary.headers(headersArgs);
 };
