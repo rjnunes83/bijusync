@@ -45,5 +45,8 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
+  },
+  "dependencies": {
+    "@shopify/polaris": "^11.21.0"
   }
 }
