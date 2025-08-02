@@ -20,7 +20,7 @@ import {
 } from "@shopify/polaris";
 import {
   OnlineStoreMajor,
-  StoreMajor,
+  ShopMajor,
   OrdersMajor,
   ProductsMajor,
   CustomersMajor,
@@ -39,7 +39,7 @@ const indicadoresMae = [
   {
     title: "Lojas Revendedoras Ativas",
     value: 13,
-    icon: StoreMajor,
+    icon: ShopMajor,
     tone: "success",
   },
   {
