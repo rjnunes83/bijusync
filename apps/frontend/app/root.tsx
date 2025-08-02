@@ -2,11 +2,11 @@
 
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Outlet, useLoaderData, Link, Links } from "@remix-run/react";
+import { Outlet, useLoaderData, Links } from "@remix-run/react";
 import { AppProvider, Banner, Page } from "@shopify/polaris";
-// Usando padrão Shopify Polaris v13+ com traduções via arquivo local
-import ptBR from "../locales/pt-BR.json";
-import en from "../locales/en.json";
+// Polaris v13+ - Traduções via arquivo local (AJUSTE: caminho correto)
+import ptBR from "./locales/pt-BR.json";
+import en from "./locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 /**
@@ -32,19 +32,19 @@ function detectLocale(request: Request) {
 }
 
 /**
- * Enterprise: Loader global, injeta contexto seguro (shop, admin, i18n).
+ * Loader global: injeta contexto seguro (shop, admin, i18n).
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
-  const mainShopDomain = process.env.MAIN_SHOP_DOMAIN;
+  const mainShopDomain = process.env.MAIN_SHOP_DOMAIN || "";
   const locale = detectLocale(request);
   const i18n = locale === "en" ? en : ptBR;
-  // TODO: Opcional: regex para validar domínio Shopify.
+  // TODO: regex para validar domínio Shopify, se quiser segurança máxima
 
   return json({
     shop,
-    isAdmin: shop === mainShopDomain,
+    isAdmin: !!mainShopDomain && shop === mainShopDomain,
     mainShopDomain,
     i18n,
     locale,
@@ -52,15 +52,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 /**
- * Enterprise Root da app:
+ * Root da app:
  * - Provider Polaris global
  * - Fallback visual amigável
- * - HeaderMenu isolado para fácil refatoração futura
  */
 export default function AppRoot() {
   const { shop, isAdmin, mainShopDomain, i18n } = useLoaderData<typeof loader>();
 
-  // Fallback enterprise: orientação clara se faltar parâmetro shop
   if (!shop) {
     return (
       <>
@@ -82,15 +80,13 @@ export default function AppRoot() {
 
   return (
     <AppProvider i18n={i18n}>
-      {/* Só o Outlet, pois o Frame é responsabilidade das rotas internas */}
       <Outlet context={{ shop, isAdmin, mainShopDomain }} />
     </AppProvider>
   );
 }
 
-/**
- * Enterprise HeaderMenu (pode migrar para Sidebar facilmente)
- */
+/* 
+// HeaderMenu pode ser migrado para um componente separado futuramente. 
 function HeaderMenu({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav
@@ -107,7 +103,6 @@ function HeaderMenu({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-// --- Enterprise styles isolados para fácil manutenção ---
 const navBarStyle = {
   display: "flex",
   gap: 32,
@@ -129,3 +124,4 @@ const navStyle = {
   lineHeight: 2.3,
   letterSpacing: 0.1,
 };
+*/

@@ -12,7 +12,7 @@ import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-remix/re
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-// 🔥 IMPORT CORRETA: traduções locais, não do node_modules
+// IMPORTS DAS TRADUÇÕES USANDO O CAMINHO CORRETO
 import ptBR from "../locales/pt-BR.json";
 import en from "../locales/en.json";
 import { admin } from "../shopify.server";
@@ -31,13 +31,19 @@ function detectLocale(request: Request) {
 }
 
 /**
- * Detecta o tipo de loja pelo domínio (Classe Mundial)
+ * Detecta o tipo de loja pelo domínio.
  * - Se domínio === revenda-biju.myshopify.com => "mae" (loja-mãe)
  * - Qualquer outro domínio => "revendedora"
+ * - Fallback para dev/local
  */
 function getTipoLoja(request: Request): "mae" | "revendedora" {
   const hostname = new URL(request.url).hostname;
-  if (hostname === "revenda-biju.myshopify.com") {
+  if (
+    hostname === "revenda-biju.myshopify.com" ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1"
+  ) {
+    // Em local/dev, trate como "mae" para facilitar testes!
     return "mae";
   }
   return "revendedora";
@@ -90,14 +96,28 @@ function Menu({ tipoLoja }: { tipoLoja: string }) {
   );
 }
 
+// --- Styles (pode migrar para arquivo .css.ts ou styled-components futuramente) ---
 const menuStyle = {
   padding: "10px 20px",
   borderBottom: "1px solid #E1E3E5",
   background: "#fff",
   marginBottom: 24,
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 12,
 };
 
-const linkStyle = { fontWeight: 600, marginRight: 18 };
+const linkStyle = {
+  fontWeight: 600,
+  marginRight: 18,
+  color: "#313133",
+  textDecoration: "none",
+  fontSize: 16,
+  borderRadius: 6,
+  transition: "background 0.12s",
+  padding: "4px 12px",
+  lineHeight: 2,
+};
 
 // App principal
 export default function App() {

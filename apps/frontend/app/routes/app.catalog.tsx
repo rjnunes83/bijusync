@@ -211,14 +211,14 @@ function ProductSkeleton() {
 }
 
 export default function CatalogPage() {
-  const [produtos, setProdutos] = useState([]);
+  const [produtos, setProdutos] = useState<any[]>([]);
   const [categoria, setCategoria] = useState("");
   const [sku, setSku] = useState("");
   const [precoMin, setPrecoMin] = useState("");
   const [precoMax, setPrecoMax] = useState("");
   const [disponibilidade, setDisponibilidade] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // UX: Toast para sucesso na importação
   const [toastActive, setToastActive] = useState(false);
@@ -228,12 +228,21 @@ export default function CatalogPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  // Importação com feedback
-  const handleImportProduct = useCallback((item) => {
-    setToastMsg(`"${item.title}" ${i18n.successImport}`);
-    setToastActive(true);
-    // Aqui entra a lógica real de importação futuramente
+  // Carrega produtos do localStorage só no navegador (corrige erro SSR)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("produtos");
+      if (saved) setProdutos(JSON.parse(saved));
+    } catch (e) {
+      // Apenas loga o erro, não quebra a aplicação
+      console.error("Erro ao ler produtos do localStorage:", e);
+    }
   }, []);
+
+  // Salva no localStorage quando produtos mudam (safe, só no cliente)
+  useEffect(() => {
+    localStorage.setItem("produtos", JSON.stringify(produtos));
+  }, [produtos]);
 
   // Busca dos produtos (mock e fallback)
   useEffect(() => {
@@ -245,7 +254,7 @@ export default function CatalogPage() {
         if (!response.ok) throw new Error(`Erro na requisição: ${response.statusText}`);
         const data = await response.json();
         setProdutos(data);
-      } catch (err) {
+      } catch (err: any) {
         setProdutos([
           {
             id: "1",
@@ -266,7 +275,7 @@ export default function CatalogPage() {
             image: "https://cdn.biju.store/img/pulseira.jpg",
           },
         ]);
-        setError(err.message);
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }
@@ -308,6 +317,13 @@ export default function CatalogPage() {
     setPrecoMax("");
     setDisponibilidade("");
   };
+
+  // Importação com feedback
+  const handleImportProduct = useCallback((item) => {
+    setToastMsg(`"${item.title}" ${i18n.successImport}`);
+    setToastActive(true);
+    // Aqui entra a lógica real de importação futuramente
+  }, []);
 
   return (
     <>
