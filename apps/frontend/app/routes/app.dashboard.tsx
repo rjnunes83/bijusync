@@ -1,79 +1,219 @@
 // apps/frontend/app/routes/app.dashboard.tsx
 
-/**
- * Dashboard da Revendedora - Área principal para revendedoras gerenciarem sua loja.
- * 
- * Este componente é exibido para revendedoras autenticadas, mostrando métricas,
- * ações rápidas e tutoriais para facilitar a gestão da loja.
- * 
- * Boas práticas:
- * - Utilize os espaços designados para adicionar novos cards e integrações.
- * - Mantenha a tipagem robusta para evitar erros em tempo de execução.
- * - Organize o layout para fácil expansão futura.
- */
+import {
+  Page,
+  Layout,
+  BlockStack,
+  Card,
+  Text,
+  Badge,
+  Button,
+  Frame,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Banner,
+  EmptyState,
+  Grid,
+  Box,
+  Icon,
+} from "@shopify/polaris";
+import {
+  OnlineStoreMajor,
+  StoreMajor,
+  OrdersMajor,
+  ProductsMajor,
+  CustomersMajor,
+  CircleTickMajor,
+  AlertMajor,
+  SyncMinor,
+  QuestionMarkMajor,
+} from "@shopify/polaris-icons";
+import { useEffect, useState } from "react";
 
-import { useOutletContext } from "@remix-run/react";
-import { Card, Page, Text, Layout, Banner } from "@shopify/polaris";
+// Mock: Defina o tipo de usuário (mãe/revendedora) — na real, virá do loader/auth
+const isLojaMae = window?.location?.hostname === "revenda-biju.myshopify.com"; // Altere para lógica real
 
-interface DashboardContext {
-  shop: string;
-}
+// Mock de indicadores
+const indicadoresMae = [
+  {
+    title: "Lojas Revendedoras Ativas",
+    value: 13,
+    icon: StoreMajor,
+    tone: "success",
+  },
+  {
+    title: "Produtos Sincronizados",
+    value: 2941,
+    icon: ProductsMajor,
+    tone: "info",
+  },
+  {
+    title: "Pedidos nas Lojas Revendedoras",
+    value: 107,
+    icon: OrdersMajor,
+    tone: "highlight",
+  },
+  {
+    title: "Erros/Pendências",
+    value: 2,
+    icon: AlertMajor,
+    tone: "critical",
+  },
+];
 
-export default function DashboardReseller() {
-  const context = useOutletContext<DashboardContext | undefined>();
+const indicadoresRevendedora = [
+  {
+    title: "Produtos Sincronizados",
+    value: 97,
+    icon: ProductsMajor,
+    tone: "success",
+  },
+  {
+    title: "Pedidos",
+    value: 7,
+    icon: OrdersMajor,
+    tone: "info",
+  },
+  {
+    title: "Última Sincronização",
+    value: "Há 2h",
+    icon: SyncMinor,
+    tone: "highlight",
+  },
+  {
+    title: "Status da Loja",
+    value: "Ativa",
+    icon: CircleTickMajor,
+    tone: "success",
+  },
+];
 
-  if (!context) {
-    // Caso o contexto não seja fornecido, renderizar mensagem de erro amigável
-    return (
-      <Page title="Dashboard da Revendedora">
-        <Banner status="critical" title="Erro ao carregar dados">
-          <p>Não foi possível carregar as informações da revendedora. Por favor, tente novamente.</p>
-        </Banner>
-      </Page>
-    );
-  }
+// Mock de atividades recentes
+const atividadesRecentesMae = [
+  { text: "Sincronização concluída: Loja Bella Joias", date: "02/08, 10:14" },
+  { text: "Nova revendedora aprovada: Pri Semijoias", date: "01/08, 19:42" },
+  { text: "Produto atualizado: Colar Elo Grumet", date: "01/08, 15:02" },
+  { text: "Sincronização falhou: Loja Luna Bijoux", date: "31/07, 23:16", error: true },
+];
 
-  const { shop } = context;
+const atividadesRecentesRevendedora = [
+  { text: "Importação de 13 produtos concluída", date: "02/08, 10:05" },
+  { text: "Sincronização automática realizada", date: "01/08, 21:00" },
+  { text: "Pedido #1092 sincronizado", date: "01/08, 17:15" },
+];
+
+export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [indicadores, setIndicadores] = useState([]);
+  const [atividades, setAtividades] = useState([]);
+
+  useEffect(() => {
+    setLoading(true);
+    // Simula chamada API (troque para loader futuramente)
+    setTimeout(() => {
+      setIndicadores(isLojaMae ? indicadoresMae : indicadoresRevendedora);
+      setAtividades(isLojaMae ? atividadesRecentesMae : atividadesRecentesRevendedora);
+      setLoading(false);
+    }, 900);
+  }, []);
 
   return (
-    <Page title="Dashboard da Revendedora">
-      <Layout>
-        {/* Área de boas-vindas */}
-        <Layout.Section>
-          <Card sectioned>
-            <Text variant="headingLg">Bem-vinda, parceira {shop}</Text>
-            <Text>
-              Importe produtos, gerencie pedidos e acompanhe o status da sua loja revendedora.
-            </Text>
-          </Card>
-        </Layout.Section>
+    <Frame>
+      <Page
+        title={isLojaMae ? "Dashboard — Loja Mãe" : "Dashboard da Revendedora"}
+        subtitle={
+          isLojaMae
+            ? "Visão geral das operações, status das lojas e KPIs da plataforma."
+            : "Acompanhe sua performance, sincronizações e pedidos em tempo real."
+        }
+        fullWidth
+      >
+        {loading ? (
+          <SkeletonPage primaryAction>
+            <Layout>
+              <Layout.Section>
+                <SkeletonDisplayText size="large" />
+                <SkeletonBodyText lines={4} />
+              </Layout.Section>
+            </Layout>
+          </SkeletonPage>
+        ) : (
+          <BlockStack gap="400">
+            {/* KPIs principais */}
+            <Grid columns={{ xs: 1, sm: 2, md: 4 }}>
+              {indicadores.map((kpi) => (
+                <Box key={kpi.title} padding="200">
+                  <Card>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                      <Icon source={kpi.icon} tone={kpi.tone} />
+                      <div>
+                        <Text variant="bodySm" tone="subdued">
+                          {kpi.title}
+                        </Text>
+                        <Text variant="headingLg" as="p">
+                          {kpi.value}
+                        </Text>
+                      </div>
+                    </div>
+                  </Card>
+                </Box>
+              ))}
+            </Grid>
 
-        {/* Área de métricas - Exemplo: status rápido da loja */}
-        <Layout.Section>
-          <Card title="Métricas da Loja" sectioned>
-            {/* Exemplo de métrica ou aviso */}
-            <Text>Pedidos pendentes: 5</Text>
-            <Text>Produtos em estoque: 120</Text>
-            {/* Desenvolvedores futuros: adicionar gráficos ou cards de métricas aqui */}
-          </Card>
-        </Layout.Section>
+            {/* Atividades Recentes */}
+            <Card title="Atividades Recentes">
+              {atividades.length === 0 ? (
+                <EmptyState
+                  heading="Nenhuma atividade registrada ainda"
+                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/empty-state.svg"
+                >
+                  <p>Suas atividades recentes aparecerão aqui assim que houver movimentação na plataforma.</p>
+                </EmptyState>
+              ) : (
+                <BlockStack gap="200">
+                  {atividades.map((a, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <Icon
+                        source={a.error ? AlertMajor : CircleTickMajor}
+                        tone={a.error ? "critical" : "success"}
+                      />
+                      <Text as="span">{a.text}</Text>
+                      <Text as="span" tone="subdued" style={{ marginLeft: "auto" }}>
+                        {a.date}
+                      </Text>
+                    </div>
+                  ))}
+                </BlockStack>
+              )}
+            </Card>
 
-        {/* Área de ações rápidas */}
-        <Layout.Section>
-          <Card title="Ações Rápidas" sectioned>
-            {/* Desenvolvedores futuros: incluir botões ou cards para importar produtos, criar pedidos, etc */}
-            <Text>Botões e links para ações rápidas serão adicionados aqui.</Text>
-          </Card>
-        </Layout.Section>
-
-        {/* Área de tutoriais e suporte */}
-        <Layout.Section>
-          <Card title="Tutoriais e Suporte" sectioned>
-            {/* Desenvolvedores futuros: adicionar vídeos, FAQs ou links de suporte */}
-            <Text>Conteúdo de suporte e tutoriais para ajudar as revendedoras.</Text>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+            {/* Ações rápidas / Ajuda */}
+            <Layout>
+              <Layout.Section>
+                <Card>
+                  <BlockStack gap="200">
+                    <Text variant="headingMd">
+                      <Icon source={QuestionMarkMajor} tone="base" /> Precisa de ajuda?
+                    </Text>
+                    <Button
+                      variant="primary"
+                      url={isLojaMae ? "/app/shops" : "/app/support"}
+                    >
+                      {isLojaMae ? "Ver lojas revendedoras" : "Falar com suporte"}
+                    </Button>
+                    {isLojaMae && (
+                      <Button variant="secondary" url="/app/sync">
+                        Sincronizar Catálogo Agora
+                      </Button>
+                    )}
+                  </BlockStack>
+                </Card>
+              </Layout.Section>
+            </Layout>
+          </BlockStack>
+        )}
+      </Page>
+    </Frame>
   );
 }

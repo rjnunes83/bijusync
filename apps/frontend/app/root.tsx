@@ -3,8 +3,9 @@
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Outlet, useLoaderData, Link, Links } from "@remix-run/react";
-import { AppProvider, Frame, Banner, Page } from "@shopify/polaris";
-import ptBR from "~/app/locales/pt-BR.json";
+import { AppProvider, Banner, Page } from "@shopify/polaris";
+import ptBR from "@shopify/polaris/locales/pt-BR.json";
+import en from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 /**
@@ -15,16 +16,37 @@ export const links: LinksFunction = () => [
 ];
 
 /**
- * Enterprise: Loader global, injeta contexto seguro (shop, admin).
+ * Detecta o idioma ideal (header, query, fallback).
+ */
+function detectLocale(request: Request) {
+  const url = new URL(request.url);
+  // Força via query param
+  const lang = url.searchParams.get("lang");
+  if (lang === "en") return "en";
+  if (lang === "pt-BR") return "pt-BR";
+  // Ou tenta pelo header Accept-Language
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  if (acceptLanguage.includes("en")) return "en";
+  return "pt-BR";
+}
+
+/**
+ * Enterprise: Loader global, injeta contexto seguro (shop, admin, i18n).
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
   const mainShopDomain = process.env.MAIN_SHOP_DOMAIN;
+  const locale = detectLocale(request);
+  const i18n = locale === "en" ? en : ptBR;
+  // TODO: Opcional: regex para validar domínio Shopify.
+
   return json({
     shop,
     isAdmin: shop === mainShopDomain,
     mainShopDomain,
+    i18n,
+    locale,
   });
 }
 
@@ -35,7 +57,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * - HeaderMenu isolado para fácil refatoração futura
  */
 export default function AppRoot() {
-  const { shop, isAdmin, mainShopDomain } = useLoaderData<typeof loader>();
+  const { shop, isAdmin, mainShopDomain, i18n } = useLoaderData<typeof loader>();
 
   // Fallback enterprise: orientação clara se faltar parâmetro shop
   if (!shop) {
@@ -58,7 +80,7 @@ export default function AppRoot() {
   }
 
   return (
-    <AppProvider i18n={ptBR}>
+    <AppProvider i18n={i18n}>
       {/* Só o Outlet, pois o Frame é responsabilidade das rotas internas */}
       <Outlet context={{ shop, isAdmin, mainShopDomain }} />
     </AppProvider>

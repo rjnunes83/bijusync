@@ -47,6 +47,6 @@
     }
   },
   "dependencies": {
-    "@shopify/polaris": "^11.21.0"
+    "@shopify/polaris": "^13.9.5"
   }
 }

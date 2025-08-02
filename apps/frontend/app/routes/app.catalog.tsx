@@ -17,8 +17,37 @@ import {
   Filters,
   Spinner,
   Banner,
+  Toast,
+  SkeletonDisplayText,
+  SkeletonBodyText,
+  SkeletonThumbnail,
 } from "@shopify/polaris";
 import { useState, useEffect, useCallback } from "react";
+
+// Internationalization mock (substitua pelo seu i18n global)
+const i18n = {
+  title: "Catálogo de Produtos",
+  filterCategory: "Categoria",
+  filterPriceMin: "Preço mínimo",
+  filterPriceMax: "Preço máximo",
+  filterAvailability: "Disponibilidade",
+  availabilityAll: "Todas",
+  availabilityAvailable: "Disponível",
+  availabilityUnavailable: "Indisponível",
+  importProduct: "Importar produto",
+  priceSuffix: "R$",
+  sku: "SKU",
+  category: "Categoria",
+  available: "Disponível",
+  unavailable: "Indisponível",
+  searchSKU: "Buscar por SKU",
+  clearFilters: "Limpar filtros",
+  prev: "Anterior",
+  next: "Próximo",
+  error: "Erro ao carregar produtos",
+  successImport: 'Produto importado com sucesso!',
+  loading: "Carregando produtos",
+};
 
 // Categorias disponíveis para filtro
 const categorias = [
@@ -29,7 +58,7 @@ const categorias = [
   { label: "Colares", value: "Colares" },
 ];
 
-// Componente para filtro de produtos
+// Filtros
 function ProductFilters({
   categoria,
   setCategoria,
@@ -49,10 +78,10 @@ function ProductFilters({
       filters={[
         {
           key: "categoria",
-          label: "Categoria",
+          label: i18n.filterCategory,
           filter: (
             <Select
-              label="Categoria"
+              label={i18n.filterCategory}
               options={categorias}
               onChange={setCategoria}
               value={categoria}
@@ -61,42 +90,42 @@ function ProductFilters({
         },
         {
           key: "precoMin",
-          label: "Preço mínimo",
+          label: i18n.filterPriceMin,
           filter: (
             <TextField
-              label="Preço mínimo"
+              label={i18n.filterPriceMin}
               type="number"
               value={precoMin}
               onChange={setPrecoMin}
               autoComplete="off"
-              suffix="R$"
+              suffix={i18n.priceSuffix}
             />
           ),
         },
         {
           key: "precoMax",
-          label: "Preço máximo",
+          label: i18n.filterPriceMax,
           filter: (
             <TextField
-              label="Preço máximo"
+              label={i18n.filterPriceMax}
               type="number"
               value={precoMax}
               onChange={setPrecoMax}
               autoComplete="off"
-              suffix="R$"
+              suffix={i18n.priceSuffix}
             />
           ),
         },
         {
           key: "disponibilidade",
-          label: "Disponibilidade",
+          label: i18n.filterAvailability,
           filter: (
             <Select
-              label="Disponibilidade"
+              label={i18n.filterAvailability}
               options={[
-                { label: "Todas", value: "" },
-                { label: "Disponível", value: "disponivel" },
-                { label: "Indisponível", value: "indisponivel" },
+                { label: i18n.availabilityAll, value: "" },
+                { label: i18n.availabilityAvailable, value: "disponivel" },
+                { label: i18n.availabilityUnavailable, value: "indisponivel" },
               ]}
               onChange={setDisponibilidade}
               value={disponibilidade}
@@ -105,39 +134,47 @@ function ProductFilters({
         },
       ]}
       onQueryChange={setSku}
-      queryPlaceholder="Buscar por SKU"
+      queryPlaceholder={i18n.searchSKU}
       onQueryClear={() => setSku("")}
       onClearAll={onClearAll}
     />
   );
 }
 
-// Componente para exibir cada produto em formato card
+// Exibição do produto
 function ProductCard({ item, onImport }) {
   return (
     <ResourceItem
       id={item.id}
-      media={<Thumbnail source={item.image} alt={item.title} size="large" />}
+      media={
+        <Thumbnail
+          source={item.image}
+          alt={item.title}
+          size="large"
+          transparent
+          loading="lazy"
+        />
+      }
       accessibilityLabel={`Ver detalhes para ${item.title}`}
     >
       <Text variant="headingMd">{item.title}</Text>
       <div>
         <Text as="span" tone="subdued">
-          SKU: {item.sku}
+          {i18n.sku}: {item.sku}
         </Text>
         <Text as="span" tone="subdued" style={{ marginLeft: 10 }}>
-          Categoria: {item.category}
+          {i18n.category}: {item.category}
         </Text>
       </div>
       <div>
         <Badge tone={item.available ? "success" : "critical"}>
-          {item.available ? "Disponível" : "Indisponível"}
+          {item.available ? i18n.available : i18n.unavailable}
         </Badge>
         <Text
           as="span"
           style={{ marginLeft: 16, fontWeight: 700, fontSize: 16 }}
         >
-          R$ {item.price.toFixed(2)}
+          {i18n.priceSuffix} {item.price.toFixed(2)}
         </Text>
       </div>
       <Button
@@ -146,14 +183,34 @@ function ProductCard({ item, onImport }) {
         onClick={() => onImport(item)}
         style={{ marginTop: 8 }}
       >
-        Importar produto
+        {i18n.importProduct}
       </Button>
     </ResourceItem>
   );
 }
 
+// Skeleton loader para UX top
+function ProductSkeleton() {
+  return (
+    <Card>
+      <ResourceList
+        items={[...Array(3).keys()]}
+        renderItem={() => (
+          <ResourceItem
+            id="loading"
+            media={<SkeletonThumbnail size="large" />}
+            accessibilityLabel="Carregando produto"
+          >
+            <SkeletonDisplayText size="small" />
+            <SkeletonBodyText lines={2} />
+          </ResourceItem>
+        )}
+      />
+    </Card>
+  );
+}
+
 export default function CatalogPage() {
-  // Estados de produtos, filtros, paginação, loading e erro
   const [produtos, setProdutos] = useState([]);
   const [categoria, setCategoria] = useState("");
   const [sku, setSku] = useState("");
@@ -163,30 +220,32 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Paginação futura (plugável)
-  const [page, setPage] = useState(1);
-  const pageSize = 10; // número de itens por página
+  // UX: Toast para sucesso na importação
+  const [toastActive, setToastActive] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
 
-  // Função para importar produto (separada para escalabilidade)
+  // Paginação
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  // Importação com feedback
   const handleImportProduct = useCallback((item) => {
-    alert(`Importar produto ${item.title}`);
+    setToastMsg(`"${item.title}" ${i18n.successImport}`);
+    setToastActive(true);
+    // Aqui entra a lógica real de importação futuramente
   }, []);
 
-  // Busca os produtos da API simulada
+  // Busca dos produtos (mock e fallback)
   useEffect(() => {
     async function fetchProdutos() {
       setLoading(true);
       setError(null);
       try {
-        // Simulação de fetch para /api/catalog
         const response = await fetch("/api/catalog");
-        if (!response.ok) {
-          throw new Error(`Erro na requisição: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`Erro na requisição: ${response.statusText}`);
         const data = await response.json();
         setProdutos(data);
       } catch (err) {
-        // Caso a API não exista, simula dados mock
         setProdutos([
           {
             id: "1",
@@ -206,9 +265,7 @@ export default function CatalogPage() {
             available: false,
             image: "https://cdn.biju.store/img/pulseira.jpg",
           },
-          // Pode adicionar mais produtos mock aqui se desejar
         ]);
-        // Também registra o erro para exibir banner
         setError(err.message);
       } finally {
         setLoading(false);
@@ -217,7 +274,7 @@ export default function CatalogPage() {
     fetchProdutos();
   }, []);
 
-  // Filtra produtos conforme filtros aplicados
+  // Filtros aplicados
   const produtosFiltrados = produtos.filter((p) => {
     return (
       (categoria === "" || p.category === categoria) &&
@@ -230,13 +287,13 @@ export default function CatalogPage() {
     );
   });
 
-  // Paginação dos produtos filtrados
+  // Paginação
   const paginatedProdutos = produtosFiltrados.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
 
-  // Funções para controle da paginação
+  // Pagination handlers
   const handlePreviousPage = () => setPage((p) => Math.max(p - 1, 1));
   const handleNextPage = () =>
     setPage((p) =>
@@ -253,63 +310,60 @@ export default function CatalogPage() {
   };
 
   return (
-    <Page title="Catálogo de Produtos">
-      <Card>
-        <BlockStack gap="400">
-          {/* Filtros de produtos */}
-          <Layout>
-            <Layout.Section>
-              <ProductFilters
-                categoria={categoria}
-                setCategoria={setCategoria}
-                sku={sku}
-                setSku={setSku}
-                precoMin={precoMin}
-                setPrecoMin={setPrecoMin}
-                precoMax={precoMax}
-                setPrecoMax={setPrecoMax}
-                disponibilidade={disponibilidade}
-                setDisponibilidade={setDisponibilidade}
-                onClearAll={handleClearAllFilters}
-              />
-            </Layout.Section>
-          </Layout>
-
-          {/* Estado de loading */}
-          {loading && (
-            <div style={{ padding: "20px", textAlign: "center" }}>
-              <Spinner accessibilityLabel="Carregando produtos" size="large" />
-            </div>
-          )}
-
-          {/* Estado de erro */}
-          {error && (
-            <Banner status="critical" title="Erro ao carregar produtos">
-              <p>{error}</p>
-            </Banner>
-          )}
-
-          {/* Lista de produtos */}
-          {!loading && !error && (
-            <>
-              <ResourceList
-                items={paginatedProdutos}
-                renderItem={(item) => (
-                  <ProductCard item={item} onImport={handleImportProduct} />
-                )}
-              />
-
-              {/* Paginação plugável */}
-              <Pagination
-                hasPrevious={page > 1}
-                hasNext={page * pageSize < produtosFiltrados.length}
-                onPrevious={handlePreviousPage}
-                onNext={handleNextPage}
-              />
-            </>
-          )}
-        </BlockStack>
-      </Card>
-    </Page>
+    <>
+      <Page title={i18n.title}>
+        <Card>
+          <BlockStack gap="400">
+            <Layout>
+              <Layout.Section>
+                <ProductFilters
+                  categoria={categoria}
+                  setCategoria={setCategoria}
+                  sku={sku}
+                  setSku={setSku}
+                  precoMin={precoMin}
+                  setPrecoMin={setPrecoMin}
+                  precoMax={precoMax}
+                  setPrecoMax={setPrecoMax}
+                  disponibilidade={disponibilidade}
+                  setDisponibilidade={setDisponibilidade}
+                  onClearAll={handleClearAllFilters}
+                />
+              </Layout.Section>
+            </Layout>
+            {/* Estado de loading */}
+            {loading && <ProductSkeleton />}
+            {/* Estado de erro */}
+            {error && (
+              <Banner status="critical" title={i18n.error}>
+                <p>{error}</p>
+              </Banner>
+            )}
+            {/* Lista de produtos */}
+            {!loading && !error && (
+              <>
+                <ResourceList
+                  items={paginatedProdutos}
+                  renderItem={(item) => (
+                    <ProductCard item={item} onImport={handleImportProduct} />
+                  )}
+                />
+                <Pagination
+                  hasPrevious={page > 1}
+                  hasNext={page * pageSize < produtosFiltrados.length}
+                  onPrevious={handlePreviousPage}
+                  onNext={handleNextPage}
+                  previousTooltip={i18n.prev}
+                  nextTooltip={i18n.next}
+                />
+              </>
+            )}
+          </BlockStack>
+        </Card>
+      </Page>
+      {toastActive && (
+        <Toast content={toastMsg} onDismiss={() => setToastActive(false)} />
+      )}
+    </>
   );
 }

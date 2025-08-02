@@ -1,45 +1,78 @@
 import { ActionFunctionArgs, json } from "@remix-run/node";
 import { admin } from "../shopify.server";
 
-// Estas variáveis de ambiente DEVEM estar no .env do seu frontend
+// These environment variables MUST be set in your frontend .env file
 const BACKEND_URL = process.env.BACKEND_API_URL;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
+// Define allowed sync job types
+type SyncJobType = "all" | "update" | "cleanup";
+
+// Strongly type expected body
+interface SyncRequestBody {
+  type: SyncJobType;
+}
+
+/**
+ * Enterprise-grade server-to-server sync endpoint.
+ * - Authenticates the admin session (shop owner).
+ * - Validates body and environment.
+ * - Calls the backend with a signed secret for authorization.
+ */
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (!BACKEND_URL || !INTERNAL_API_SECRET) {
-    throw new Error("Variáveis de ambiente do backend não configuradas no frontend.");
+    // Never leak secret names in prod error messages
+    throw new Error("Backend API environment variables are not configured.");
   }
 
-  // Autentica a requisição para garantir que vem de um comerciante logado
+  // Authenticate current admin user
   const { session } = await admin.authenticate.admin(request);
   const { shop } = session;
-  const body = await request.json(); // ex: { type: 'all' | 'update' | 'cleanup' }
 
-  // Constrói a URL do endpoint do backend
+  let body: SyncRequestBody;
+  try {
+    body = await request.json();
+    if (!body.type || !["all", "update", "cleanup"].includes(body.type)) {
+      return json({ error: "Invalid 'type' parameter." }, { status: 400 });
+    }
+  } catch (err) {
+    return json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  // Compose backend URL and method
   const targetUrl = `${BACKEND_URL}/api/sync/${body.type}`;
-  const method = body.type === 'cleanup' ? 'DELETE' : 'POST'; // Ajusta o método HTTP
+  const method = body.type === "cleanup" ? "DELETE" : "POST";
 
   try {
-    // A action do Remix faz a chamada segura servidor-para-servidor para o backend
     const response = await fetch(targetUrl, {
-      method: method,
+      method,
       headers: {
-        'Content-Type': 'application/json',
-        'x-internal-api-secret': INTERNAL_API_SECRET, // <-- O segredo
+        "Content-Type": "application/json",
+        "x-internal-api-secret": INTERNAL_API_SECRET, // Authorization header
       },
       body: JSON.stringify({ shopifyDomain: shop }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      return json({ error: errorData.error || `Falha ao agendar o job (status: ${response.status})` }, { status: response.status });
+      // Try to parse backend error, but never leak infra details
+      let errorMsg = `Failed to schedule job (status: ${response.status})`;
+      try {
+        const errData = await response.json();
+        if (typeof errData?.error === "string") {
+          errorMsg = errData.error;
+        }
+      } catch (_) {
+        // ignore
+      }
+      return json({ error: errorMsg }, { status: response.status });
     }
 
     const data = await response.json();
     return json(data);
 
   } catch (error) {
-    console.error("[BFF] Erro de comunicação com o backend:", error);
-    return json({ error: 'Erro de rede ao comunicar com o backend.' }, { status: 500 });
+    // Log for audit, but do not leak internals
+    console.error("[BFF] Communication error with backend sync endpoint.");
+    return json({ error: "Network error while communicating with backend." }, { status: 502 });
   }
 };
