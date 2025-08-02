@@ -10,7 +10,10 @@ import {
   Icon,
   List,
 } from "@shopify/polaris";
-import { RefreshMajor, CircleTickMajor } from "@shopify/polaris-icons";
+import {
+  RefreshMajor,
+  CircleTickMajor,
+} from "@shopify/polaris-icons";
 import { useState } from "react";
 
 /**
@@ -27,7 +30,7 @@ export default function SyncPage() {
   const handleSync = async () => {
     setLoading(true);
     setError(null);
-    setStatus("Sincronizando...");
+    setStatus("Sincronizando catálogo...");
     setLog([]);
     try {
       const res = await fetch("/api/sync", { method: "POST" });
@@ -53,7 +56,7 @@ export default function SyncPage() {
   return (
     <Page
       title="Sincronizar Catálogo"
-      subtitle="Atualize produtos das lojas revendedoras em tempo real."
+      subtitle="Atualize os produtos das lojas revendedoras em tempo real."
     >
       <Card sectioned>
         <TextContainer>
@@ -66,7 +69,13 @@ export default function SyncPage() {
             <List.Item>Pronto para SaaS e expansão futura</List.Item>
           </List>
         </TextContainer>
-        <div style={{ marginTop: 32, display: "flex", gap: 24, alignItems: "center" }}>
+        <div style={{
+          marginTop: 32,
+          display: "flex",
+          gap: 24,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}>
           <Button
             onClick={handleSync}
             primary
@@ -76,7 +85,10 @@ export default function SyncPage() {
             size="large"
           >
             {loading ? (
-              <Spinner accessibilityLabel="Sincronizando..." size="small" />
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Spinner accessibilityLabel="Sincronizando..." size="small" />
+                <span>Sincronizando...</span>
+              </span>
             ) : (
               "Sincronizar Agora"
             )}
@@ -84,17 +96,24 @@ export default function SyncPage() {
 
           {/* Status banner */}
           {!loading && status && !error && (
-            <Banner status="success" icon={CircleTickMajor} title="Catálogo atualizado!">
-              {status}
-              {log.length > 0 && (
-                <List>
-                  {log.map((item, idx) =>
-                    <List.Item key={idx}>{item}</List.Item>
-                  )}
-                </List>
-              )}
+            <Banner
+              status="success"
+              icon={CircleTickMajor}
+              title="Catálogo atualizado!"
+            >
+              <TextContainer>
+                {status}
+                {log.length > 0 && (
+                  <List>
+                    {log.map((item, idx) =>
+                      <List.Item key={idx}>{item}</List.Item>
+                    )}
+                  </List>
+                )}
+              </TextContainer>
             </Banner>
           )}
+
           {error && (
             <Banner
               status="critical"

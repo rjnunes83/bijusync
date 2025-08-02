@@ -1,58 +1,62 @@
+// apps/frontend/app/routes/api.sync.ts
+
 import { ActionFunctionArgs, json } from "@remix-run/node";
 import { admin } from "../shopify.server";
 
-// Ambiente seguro (variáveis obrigatórias, nunca hardcode!)
+// Ambiente seguro (NUNCA hardcoded em produção)
 const BACKEND_URL = process.env.BACKEND_API_URL;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
 // Tipos permitidos de sincronização
 type SyncJobType = "all" | "update" | "cleanup";
+interface SyncRequestBody { type: SyncJobType; }
 
-// Contrato do body recebido (TypeScript forte)
-interface SyncRequestBody {
-  type: SyncJobType;
+// (Pré-)Internationalização: Detecta o locale do usuário (para mensagens futuras)
+function detectLocale(request: Request): "pt-BR" | "en" {
+  const accept = request.headers.get("accept-language") || "";
+  if (accept.includes("en")) return "en";
+  return "pt-BR";
 }
 
 /**
- * API de sincronização - Enterprise/Server-to-Server (SSR only)
- * - Autentica sessão de admin (obrigatório)
- * - Valida body e ambiente
- * - Faz chamada autenticada ao backend (BFF)
- * - Padrão: nunca vaza detalhes internos em produção
- * - Preparado para internacionalização de erros (futuro)
+ * API de Sincronização - Server-to-Server, Enterprise
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
-  // Segurança: exija variáveis de ambiente
+  const locale = detectLocale(request);
+
+  // 1. Segurança de ambiente
   if (!BACKEND_URL || !INTERNAL_API_SECRET) {
-    // NUNCA exponha nomes reais dos segredos em produção!
+    // Não exponha detalhes de variável em produção
     throw new Error("Infra error: Backend API environment not configured.");
   }
 
-  // Autentica usuário admin (segurança máxima)
+  // 2. Autenticação do admin
   const authResult = await admin.authenticate.admin(request);
   if (!authResult?.session?.shop) {
-    // Isso nunca deve acontecer, mas garante que nunca vaze sessão indefinida
     return json(
-      { error: "Sessão de administrador inválida. Por favor, faça login novamente." },
+      { success: false, error: locale === "en" ? "Invalid admin session." : "Sessão de administrador inválida. Por favor, faça login novamente.", data: null },
       { status: 401 }
     );
   }
   const { shop } = authResult.session;
 
-  // Validação forte do body
+  // 3. Validação e parsing do body
   let body: SyncRequestBody;
   try {
     body = await request.json();
     if (!body.type || !["all", "update", "cleanup"].includes(body.type)) {
-      return json({ error: "Parâmetro 'type' inválido." }, { status: 400 });
+      return json({ success: false, error: locale === "en" ? "Invalid sync type." : "Parâmetro 'type' inválido.", data: null }, { status: 400 });
     }
-  } catch (err) {
-    return json({ error: "Body JSON malformado." }, { status: 400 });
+  } catch {
+    return json({ success: false, error: locale === "en" ? "Malformed JSON body." : "Body JSON malformado.", data: null }, { status: 400 });
   }
 
-  // Monta endpoint e método HTTP
+  // 4. Construção do endpoint
   const targetUrl = `${BACKEND_URL}/api/sync/${body.type}`;
   const method = body.type === "cleanup" ? "DELETE" : "POST";
+
+  // 5. (Opcional) Adicionar rate limiting (futuro)
+  // TODO: Implementar limitação por IP/shop para evitar abuso
 
   try {
     const response = await fetch(targetUrl, {
@@ -64,31 +68,45 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       body: JSON.stringify({ shopifyDomain: shop }),
     });
 
-    if (!response.ok) {
-      // Tenta extrair erro do backend, mas nunca expõe detalhes técnicos
-      let errorMsg = `Erro ao agendar sincronização (status: ${response.status})`;
-      try {
-        const errData = await response.json();
-        if (typeof errData?.error === "string") {
-          errorMsg = errData.error;
-        }
-      } catch (_) {
-        // ignora parsing de erro
-      }
-      // TODO: Centralizar log de erro (Datadog, Sentry, etc)
-      return json({ error: errorMsg }, { status: response.status });
+    // 6. Análise do retorno do backend
+    let responseBody: any = null;
+    try {
+      responseBody = await response.json();
+    } catch {
+      responseBody = null;
     }
 
-    // Sucesso: retorna o resultado do backend (status, mensagem)
-    const data = await response.json();
-    return json(data);
+    if (!response.ok) {
+      let errorMsg = locale === "en"
+        ? `Error scheduling sync (status: ${response.status})`
+        : `Erro ao agendar sincronização (status: ${response.status})`;
+      if (typeof responseBody?.error === "string") {
+        errorMsg = responseBody.error;
+      }
+      // (Nunca vaze detalhes técnicos mesmo em dev)
+      // TODO: Centralizar logs (Datadog/Sentry) incluindo stack trace, request ID, etc.
+      if (process.env.NODE_ENV !== "production") {
+        console.error(`[API_SYNC] [${new Date().toISOString()}]`, errorMsg);
+      }
+      return json({ success: false, error: errorMsg, data: null }, { status: response.status });
+    }
+
+    // Sucesso: retorna shape padrão
+    return json({ success: true, error: null, data: responseBody });
 
   } catch (error) {
-    // Log detalhado só no backend (nunca exiba na resposta HTTP)
-    // TODO: logar stack trace (Datadog, Sentry, etc)
-    console.error("[BFF] Erro de comunicação com o endpoint de sync do backend.", error);
+    // Logging só controlado
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[API_SYNC] Network/backend error:", error);
+    }
     return json(
-      { error: "Erro de rede ao comunicar com o backend. Tente novamente em instantes." },
+      {
+        success: false,
+        error: locale === "en"
+          ? "Network error communicating with backend. Please try again shortly."
+          : "Erro de rede ao comunicar com o backend. Tente novamente em instantes.",
+        data: null
+      },
       { status: 502 }
     );
   }

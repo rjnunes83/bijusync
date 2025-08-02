@@ -19,7 +19,7 @@ import {
 } from "@shopify/polaris-icons";
 
 /**
- * Página de Suporte e Atendimento (Classe Mundial)
+ * Página de Suporte e Atendimento - Classe Mundial Enterprise
  */
 export default function SupportPage() {
   return (
@@ -34,25 +34,30 @@ export default function SupportPage() {
             status="info"
             title="Precisa de ajuda?"
             icon={QuestionMarkMajor}
+            tone="info"
           >
             <TextContainer>
               <p>
-                Nossa equipe está disponível por múltiplos canais. Atendimento rápido, humanizado e com foco total no seu sucesso.
+                Atendimento rápido, humanizado e com foco total no seu sucesso. Nossa equipe está disponível por múltiplos canais:
               </p>
-              <Stack spacing="loose" distribution="fillEvenly">
+              <Stack spacing="extraLoose" distribution="fillEvenly">
                 <Button
                   url="mailto:suporte@bijuecia.com"
                   icon={EmailMajor}
                   external
                   size="large"
+                  accessibilityLabel="Enviar email para o suporte"
+                  rel="noopener noreferrer"
                 >
-                  suporte@bijuecia.com
+                  Email
                 </Button>
                 <Button
                   url="https://wa.me/351912345678"
                   icon={ChatMajor}
                   external
                   size="large"
+                  accessibilityLabel="Abrir conversa no WhatsApp"
+                  rel="noopener noreferrer"
                 >
                   WhatsApp
                 </Button>
@@ -61,7 +66,9 @@ export default function SupportPage() {
                   icon={CircleTickMajor}
                   external
                   size="large"
-                  disabled // Liberar quando FAQ online
+                  disabled
+                  accessibilityLabel="FAQ online em breve"
+                  rel="noopener noreferrer"
                 >
                   FAQ Online
                 </Button>
@@ -73,7 +80,7 @@ export default function SupportPage() {
         <Layout.Section>
           <Card sectioned title="Horário de Atendimento" >
             <Stack alignment="center" spacing="tight">
-              <Icon source={ClockMajor} />
+              <Icon source={ClockMajor} accessibilityLabel="Horário de atendimento" />
               <TextContainer>
                 <p>
                   <strong>Segunda a Sexta:</strong> 09h às 18h <br />

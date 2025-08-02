@@ -11,10 +11,9 @@ import {
 import { Link } from "@remix-run/react";
 
 /**
- * DashboardPage (Classe Mundial Enterprise)
- * Visão geral do ecossistema. Modular, internacionalizável e fácil de evoluir.
- *
- * Para menus/ações dinâmicas: basta passar tipoLoja via loader/context.
+ * DashboardPage (Enterprise-ready)
+ * Visão geral do ecossistema Biju & Cia.
+ * Modular, internacionalizável e preparado para expansão (menus dinâmicos, métricas, etc).
  */
 export default function DashboardPage() {
   return (
@@ -27,7 +26,6 @@ export default function DashboardPage() {
         <Layout.Section>
           <WelcomeCard />
         </Layout.Section>
-
         <Layout.Section secondary>
           <SystemStatusCard />
           <SupportCard />
@@ -38,11 +36,22 @@ export default function DashboardPage() {
 }
 
 /**
- * Bloco de boas-vindas e ações rápidas
+ * Card de boas-vindas e ações rápidas.
+ * Aceita futuras props para i18n, personalização ou contexto de loja-mãe/revendedora.
  */
 function WelcomeCard() {
   return (
-    <Card sectioned title="Bem-vindo à Plataforma Biju & Cia.">
+    <Card
+      sectioned
+      title="Bem-vindo à Plataforma Biju & Cia."
+      actions={[
+        {
+          content: "Ajuda",
+          url: "mailto:suporte@bijuecia.com",
+          accessibilityLabel: "Contato do suporte por email"
+        }
+      ]}
+    >
       <TextContainer>
         <p>
           Gerencie a <b>sincronização de produtos</b>, <b>lojas conectadas</b> e todas as <b>configurações</b> do seu ecossistema de revenda em um só lugar.
@@ -61,7 +70,7 @@ function WelcomeCard() {
           <Link to="/app/sync" aria-label="Sincronizar Catálogo">
             <Button>Sincronizar Catálogo</Button>
           </Link>
-          {/* Exemplo de ação dinâmica, menu da loja-mãe pode ter mais ações */}
+          {/* Futuro: menu dinâmico de acordo com tipo de loja */}
           {/* <Link to="/app/relatorios" aria-label="Ver Relatórios">
             <Button>Relatórios</Button>
           </Link> */}
@@ -72,7 +81,8 @@ function WelcomeCard() {
 }
 
 /**
- * Status do sistema e sugestões rápidas
+ * Card de status do sistema e sugestões rápidas.
+ * Pode receber props para healthcheck, alertas dinâmicos, etc.
  */
 function SystemStatusCard() {
   return (
@@ -88,32 +98,35 @@ function SystemStatusCard() {
         </Link>{" "}
         para personalizar sua experiência.
       </Banner>
-      {/* Espaço reservado para métricas, alertas, healthchecks etc. */}
+      {/* [Futuro] Métricas do sistema, healthcheck e alertas em tempo real */}
     </Card>
   );
 }
 
 /**
- * Bloco de suporte institucional
+ * Card de suporte institucional.
+ * Endereço de email parametrizável via env/context no futuro.
  */
 function SupportCard() {
   return (
     <Card title="Suporte rápido" sectioned>
-      <p>
-        Dúvidas ou problemas? Fale com nosso suporte:
-        <br />
-        <a
-          href="mailto:suporte@bijuecia.com"
-          style={{
-            color: "#004C92",
-            fontWeight: 500,
-            wordBreak: "break-all"
-          }}
-          aria-label="Enviar email para suporte"
-        >
-          suporte@bijuecia.com
-        </a>
-      </p>
+      <TextContainer>
+        <p>
+          Dúvidas ou problemas? Fale com nosso suporte:
+          <br />
+          <a
+            href="mailto:suporte@bijuecia.com"
+            style={{
+              color: "#004C92",
+              fontWeight: 500,
+              wordBreak: "break-all"
+            }}
+            aria-label="Enviar email para suporte"
+          >
+            suporte@bijuecia.com
+          </a>
+        </p>
+      </TextContainer>
     </Card>
   );
 }

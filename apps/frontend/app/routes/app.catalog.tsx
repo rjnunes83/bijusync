@@ -21,35 +21,37 @@ import {
   SkeletonDisplayText,
   SkeletonBodyText,
   SkeletonThumbnail,
+  AppProvider as PolarisAppProvider,
 } from "@shopify/polaris";
 import { useState, useEffect, useCallback } from "react";
+import { useLoaderData } from "@remix-run/react";
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import ptBR from "../locales/pt-BR.json";
+import en from "../locales/en.json";
+import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-// Internationalization mock (substitua pelo seu i18n global)
-const i18n = {
-  title: "Catálogo de Produtos",
-  filterCategory: "Categoria",
-  filterPriceMin: "Preço mínimo",
-  filterPriceMax: "Preço máximo",
-  filterAvailability: "Disponibilidade",
-  availabilityAll: "Todas",
-  availabilityAvailable: "Disponível",
-  availabilityUnavailable: "Indisponível",
-  importProduct: "Importar produto",
-  priceSuffix: "R$",
-  sku: "SKU",
-  category: "Categoria",
-  available: "Disponível",
-  unavailable: "Indisponível",
-  searchSKU: "Buscar por SKU",
-  clearFilters: "Limpar filtros",
-  prev: "Anterior",
-  next: "Próximo",
-  error: "Erro ao carregar produtos",
-  successImport: 'Produto importado com sucesso!',
-  loading: "Carregando produtos",
+// Polaris Styles
+export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+
+// --- ENTERPRISE: Loader para internacionalização
+function detectLocale(request: Request) {
+  const url = new URL(request.url);
+  const lang = url.searchParams.get("lang");
+  if (lang === "en") return "en";
+  if (lang === "pt-BR") return "pt-BR";
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  if (acceptLanguage.includes("en")) return "en";
+  return "pt-BR";
+}
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const locale = detectLocale(request);
+  const i18n = locale === "en" ? en : ptBR;
+  return json({ i18n, locale });
 };
 
-// Categorias disponíveis para filtro
+// --- Categorias disponíveis para filtro (pode vir do backend futuro)
 const categorias = [
   { label: "Todos", value: "" },
   { label: "Brincos", value: "Brincos" },
@@ -71,6 +73,7 @@ function ProductFilters({
   disponibilidade,
   setDisponibilidade,
   onClearAll,
+  i18n,
 }) {
   return (
     <Filters
@@ -142,7 +145,7 @@ function ProductFilters({
 }
 
 // Exibição do produto
-function ProductCard({ item, onImport }) {
+function ProductCard({ item, onImport, i18n }) {
   return (
     <ResourceItem
       id={item.id}
@@ -211,6 +214,8 @@ function ProductSkeleton() {
 }
 
 export default function CatalogPage() {
+  const { i18n } = useLoaderData<typeof loader>();
+
   const [produtos, setProdutos] = useState<any[]>([]);
   const [categoria, setCategoria] = useState("");
   const [sku, setSku] = useState("");
@@ -230,18 +235,22 @@ export default function CatalogPage() {
 
   // Carrega produtos do localStorage só no navegador (corrige erro SSR)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("produtos");
-      if (saved) setProdutos(JSON.parse(saved));
-    } catch (e) {
-      // Apenas loga o erro, não quebra a aplicação
-      console.error("Erro ao ler produtos do localStorage:", e);
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("produtos");
+        if (saved) setProdutos(JSON.parse(saved));
+      } catch (e) {
+        // Apenas loga o erro, não quebra a aplicação
+        console.error("Erro ao ler produtos do localStorage:", e);
+      }
     }
   }, []);
 
   // Salva no localStorage quando produtos mudam (safe, só no cliente)
   useEffect(() => {
-    localStorage.setItem("produtos", JSON.stringify(produtos));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("produtos", JSON.stringify(produtos));
+    }
   }, [produtos]);
 
   // Busca dos produtos (mock e fallback)
@@ -323,10 +332,10 @@ export default function CatalogPage() {
     setToastMsg(`"${item.title}" ${i18n.successImport}`);
     setToastActive(true);
     // Aqui entra a lógica real de importação futuramente
-  }, []);
+  }, [i18n]);
 
   return (
-    <>
+    <PolarisAppProvider i18n={i18n}>
       <Page title={i18n.title}>
         <Card>
           <BlockStack gap="400">
@@ -344,6 +353,7 @@ export default function CatalogPage() {
                   disponibilidade={disponibilidade}
                   setDisponibilidade={setDisponibilidade}
                   onClearAll={handleClearAllFilters}
+                  i18n={i18n}
                 />
               </Layout.Section>
             </Layout>
@@ -361,7 +371,7 @@ export default function CatalogPage() {
                 <ResourceList
                   items={paginatedProdutos}
                   renderItem={(item) => (
-                    <ProductCard item={item} onImport={handleImportProduct} />
+                    <ProductCard item={item} onImport={handleImportProduct} i18n={i18n} />
                   )}
                 />
                 <Pagination
@@ -380,6 +390,6 @@ export default function CatalogPage() {
       {toastActive && (
         <Toast content={toastMsg} onDismiss={() => setToastActive(false)} />
       )}
-    </>
+    </PolarisAppProvider>
   );
 }
