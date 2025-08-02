@@ -12,22 +12,22 @@ import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-remix/re
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-import ptBR from "@shopify/polaris/locales/pt-BR.json";
-import en from "@shopify/polaris/locales/en.json";
+// 🔥 IMPORT CORRETA: traduções locais, não do node_modules
+import ptBR from "../locales/pt-BR.json";
+import en from "../locales/en.json";
 import { admin } from "../shopify.server";
 
-// Link de estilos
+// Link de estilos para Polaris
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 /**
  * Detecta o idioma mais adequado baseado no header Accept-Language
- * Fallback: pt-BR → en
  */
 function detectLocale(request: Request) {
   const acceptLanguage = request.headers.get("accept-language") || "";
   if (acceptLanguage.includes("pt-BR")) return "pt-BR";
   if (acceptLanguage.includes("en")) return "en";
-  return "pt-BR"; // Fallback padrão
+  return "pt-BR"; // fallback
 }
 
 /**
@@ -53,17 +53,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const locale = detectLocale(request);
-  let i18n;
-  switch (locale) {
-    case "en":
-      i18n = en;
-      break;
-    case "pt-BR":
-    default:
-      i18n = ptBR;
-  }
+  let i18n = ptBR; // fallback padrão
+  if (locale === "en") i18n = en;
 
-  // Detecta o tipo de loja pelo domínio
   const tipoLoja = getTipoLoja(request);
 
   return json({

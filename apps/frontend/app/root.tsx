@@ -4,8 +4,9 @@ import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Outlet, useLoaderData, Link, Links } from "@remix-run/react";
 import { AppProvider, Banner, Page } from "@shopify/polaris";
-import ptBR from "@shopify/polaris/locales/pt-BR.json";
-import en from "@shopify/polaris/locales/en.json";
+// Usando padrão Shopify Polaris v13+ com traduções via arquivo local
+import ptBR from "../locales/pt-BR.json";
+import en from "../locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 /**
