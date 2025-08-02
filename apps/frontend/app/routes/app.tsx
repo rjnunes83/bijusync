@@ -5,7 +5,7 @@ import { Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/re
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { Frame, Navigation, TopBar } from "@shopify/polaris";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
-import ptBR from "../locales/pt-BR.json";
+import ptBR from "~/app/locales/pt-BR.json";
 import { admin } from "../shopify.server";
 import { useState } from "react";
 
