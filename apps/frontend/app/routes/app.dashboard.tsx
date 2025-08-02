@@ -23,7 +23,7 @@ import {
   ProductIcon,
   OrderIcon,
   AlertCircleIcon,
-  SyncIcon,
+  RefreshIcon,
   CheckCircleIcon,
   QuestionCircleIcon,
 } from "@shopify/polaris-icons";
@@ -76,7 +76,7 @@ const indicadoresRevendedora = [
   {
     title: "Última Sincronização",
     value: "Há 2h",
-    icon: SyncIcon,
+    icon: RefreshIcon,
     tone: "highlight",
   },
   {
