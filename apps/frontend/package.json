@@ -29,6 +29,7 @@
     "@remix-run/node": "^2.10.3",
     "@remix-run/react": "^2.10.3",
     "@remix-run/serve": "^2.10.3",
+    "@rollup/plugin-json": "^6.1.0",
     "@shopify/app-bridge-react": "^4.2.0",
     "@shopify/polaris": "^12.27.0",
     "@shopify/shopify-app-remix": "^3.7.0",

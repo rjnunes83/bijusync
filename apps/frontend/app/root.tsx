@@ -4,7 +4,7 @@ import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Outlet, useLoaderData, Link, Links } from "@remix-run/react";
 import { AppProvider, Frame, Banner, Page } from "@shopify/polaris";
-import ptBR from "@shopify/polaris/locales/pt-BR.json";
+import ptBR from "~/app/locales/pt-BR.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 /**
@@ -59,11 +59,8 @@ export default function AppRoot() {
 
   return (
     <AppProvider i18n={ptBR}>
-      <Frame>
-        <HeaderMenu isAdmin={isAdmin} />
-        {/* O Outlet propaga o contexto global para todas as rotas filhas */}
-        <Outlet context={{ shop, isAdmin, mainShopDomain }} />
-      </Frame>
+      {/* Só o Outlet, pois o Frame é responsabilidade das rotas internas */}
+      <Outlet context={{ shop, isAdmin, mainShopDomain }} />
     </AppProvider>
   );
 }

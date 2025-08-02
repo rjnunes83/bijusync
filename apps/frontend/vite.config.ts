@@ -2,6 +2,7 @@ import { vitePlugin as remix } from "@remix-run/dev";
 import { installGlobals } from "@remix-run/node";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+import json from "@rollup/plugin-json"; // ADICIONADO: plugin oficial para JSON
 
 installGlobals({ nativeFetch: true });
 
@@ -47,9 +48,9 @@ export default defineConfig({
     },
   },
   plugins: [
+    json(),              // <-- JSON plugin sempre primeiro!
     remix({
       ignoredRouteFiles: ["**/.*"],
-      // future: { ... } foi removido para evitar o erro!
     }),
     tsconfigPaths(),
   ],

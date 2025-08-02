@@ -3,15 +3,11 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Outlet, useLoaderData, useRouteError, useLocation } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
-import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-remix/react";
-import { AppProvider as PolarisAppProvider, Frame, Navigation, TopBar } from "@shopify/polaris";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-import ptBR from "../locales/pt-BR.json"; // <-- Importação direta do JSON!
+import { Frame, Navigation, TopBar } from "@shopify/polaris";
+import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
+import ptBR from "~/app/locales/pt-BR.json";
 import { admin } from "../shopify.server";
 import { useState } from "react";
-
-// Polaris CSS
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 // Loader: autentica e determina se é loja-mãe ou revendedora
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -25,14 +21,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const isMainStore = shopDomain === mainStoreDomain;
 
   return json({
-    apiKey: process.env.SHOPIFY_API_KEY || "",
     isMainStore,
-    // NÃO envie polarisTranslations aqui!
   });
 };
 
 export default function App() {
-  const { apiKey, isMainStore } = useLoaderData<typeof loader>();
+  const { isMainStore } = useLoaderData<typeof loader>();
   const location = useLocation();
   const [userMenuActive, setUserMenuActive] = useState(false);
 
@@ -96,22 +90,20 @@ export default function App() {
   );
 
   return (
-    <ShopifyAppProvider isEmbeddedApp apiKey={apiKey}>
-      <PolarisAppProvider i18n={ptBR}>
-        <Frame
-          logo={{
-            width: 124,
-            topBarSource: "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
-            url: "/app",
-            accessibilityLabel: "Biju & Cia. Connector"
-          }}
-          navigation={navigation}
-          topBar={topBarMarkup}
-        >
-          <Outlet />
-        </Frame>
-      </PolarisAppProvider>
-    </ShopifyAppProvider>
+    <PolarisAppProvider i18n={ptBR}>
+      <Frame
+        logo={{
+          width: 124,
+          topBarSource: "https://cdn.shopify.com/shopifycloud/web/assets/v1/logo/shopify/logo.svg",
+          url: "/app",
+          accessibilityLabel: "Biju & Cia. Connector"
+        }}
+        navigation={navigation}
+        topBar={topBarMarkup}
+      >
+        <Outlet />
+      </Frame>
+    </PolarisAppProvider>
   );
 }
 
