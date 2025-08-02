@@ -6,7 +6,7 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider as ShopifyAppProvider } from "@shopify/shopify-app-remix/react";
 import { AppProvider as PolarisAppProvider, Frame, Navigation, TopBar } from "@shopify/polaris";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
-import ptBR from "@shopify/polaris/locales/pt-BR.json";
+import ptBR from "../locales/pt-BR.json";
 import { admin } from "../shopify.server";
 import { useState } from "react";
 
@@ -27,11 +27,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return json({
     apiKey: process.env.SHOPIFY_API_KEY || "",
     isMainStore,
+    polarisTranslations: ptBR, // Adicione isto
   });
 };
 
 export default function App() {
-  const { apiKey, isMainStore } = useLoaderData<typeof loader>();
+  const { apiKey, isMainStore, polarisTranslations } = useLoaderData<typeof loader>();
   const location = useLocation();
   const [userMenuActive, setUserMenuActive] = useState(false);
 
@@ -96,7 +97,7 @@ export default function App() {
 
   return (
     <ShopifyAppProvider isEmbeddedApp apiKey={apiKey}>
-      <PolarisAppProvider i18n={ptBR}>
+      <PolarisAppProvider i18n={polarisTranslations}>
         <Frame
           logo={{
             width: 124,
