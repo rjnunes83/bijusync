@@ -29,9 +29,6 @@ import {
 } from "@shopify/polaris-icons";
 import { useEffect, useState } from "react";
 
-// Mock: Defina o tipo de usuário (mãe/revendedora) — na real, virá do loader/auth
-const isLojaMae = window?.location?.hostname === "revenda-biju.myshopify.com"; // Altere para lógica real
-
 // Mock de indicadores
 const indicadoresMae = [
   {
@@ -105,16 +102,24 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [indicadores, setIndicadores] = useState([]);
   const [atividades, setAtividades] = useState([]);
+  const [isLojaMae, setIsLojaMae] = useState(false);
+
+  useEffect(() => {
+    // Executa só no client
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname;
+      setIsLojaMae(host === "revenda-biju.myshopify.com");
+    }
+  }, []);
 
   useEffect(() => {
     setLoading(true);
-    // Simula chamada API (troque para loader futuramente)
     setTimeout(() => {
       setIndicadores(isLojaMae ? indicadoresMae : indicadoresRevendedora);
       setAtividades(isLojaMae ? atividadesRecentesMae : atividadesRecentesRevendedora);
       setLoading(false);
     }, 900);
-  }, []);
+  }, [isLojaMae]);
 
   return (
     <Frame>
