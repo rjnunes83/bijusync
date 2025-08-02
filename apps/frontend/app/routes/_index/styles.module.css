@@ -1,3 +1,13 @@
+:root {
+  --spacing: 2rem;
+  --spacing-small: 0.4rem;
+  --radius: 6px;
+  --font-heading: 600;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.2rem;
+}
+
+/* Layout principal */
 .index {
   align-items: center;
   display: flex;
@@ -8,53 +18,72 @@
   padding: 1rem;
 }
 
-.heading,
-.text {
+/* Headings e textos */
+.heading {
   padding: 0;
+  margin: 0;
+  font-weight: var(--font-heading);
+  font-size: 2rem;
+}
+.text {
+  font-size: var(--font-size-lg);
+  padding-bottom: var(--spacing);
   margin: 0;
 }
 
-.text {
-  font-size: 1.2rem;
-  padding-bottom: 2rem;
-}
-
+/* Content Grid */
 .content {
   display: grid;
-  gap: 2rem;
+  gap: var(--spacing);
 }
 
+/* Formulário */
 .form {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   margin: 0 auto;
-  gap: 1rem;
+  gap: var(--spacing-small);
 }
 
+/* Labels */
 .label {
   display: grid;
   gap: 0.2rem;
   max-width: 20rem;
   text-align: left;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
+/* Inputs e Botões */
 .input {
-  padding: 0.4rem;
+  padding: var(--spacing-small);
+  border-radius: var(--radius);
+  font-size: var(--font-size-base);
 }
-
 .button {
-  padding: 0.4rem;
+  padding: var(--spacing-small);
+  border-radius: var(--radius);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  background: #008060;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.button:focus {
+  outline: 2px solid #005f43;
 }
 
+/* Listas */
 .list {
   list-style: none;
   padding: 0;
   padding-top: 3rem;
   margin: 0;
   display: flex;
-  gap: 2rem;
+  gap: var(--spacing);
 }
 
 .list > li {
@@ -66,7 +95,6 @@
   .list {
     display: block;
   }
-
   .list > li {
     padding-bottom: 1rem;
   }
